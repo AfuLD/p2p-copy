@@ -5,7 +5,7 @@ Minimal Python library + CLI skeleton for WSS-based, chunked file transfer.
 ## Install (editable, dev)
 ```bash
 python -m venv .venv && source .venv/bin/activate
-pip install -e ".[compression,security]"
+pip install -e ".[dev,compression,security]"
 ```
 
 ## Run CLI
