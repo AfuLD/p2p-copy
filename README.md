@@ -20,3 +20,10 @@ p2p-copy receive --server wss://example.org --code ABC --out ./downloads
 pip install build
 python -m build
 ```
+
+
+## Run tests
+```bash
+pytest tests
+```
+

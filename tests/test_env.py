@@ -133,9 +133,7 @@ def test_required_dependencies_present_and_versions():
     assert not wrong, "Version too low: " + ", ".join(f"{p} {v} < {m}" for p, v, m in wrong)
 
 
-def test_optional_extras_if_requested():
-    if not os.environ.get("P2P_COPY_REQUIRE_EXTRAS"):
-        return
+def test_optional_extras():
     missing, wrong = [], []
     for pkg, min_v in EXTRAS.items():
         try:
@@ -148,9 +146,7 @@ def test_optional_extras_if_requested():
     assert not wrong, "Extra version too low: " + ", ".join(f"{p} {v} < {m}" for p, v, m in wrong)
 
 
-def test_dev_extras_if_requested():
-    if not os.environ.get("P2P_COPY_REQUIRE_DEV"):
-        return
+def test_dev_extras():
     missing, wrong = [], []
     for pkg, min_v in DEV.items():
         try:
