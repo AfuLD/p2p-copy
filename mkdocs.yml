@@ -1,3 +1,8 @@
 site_name: p2p-copy
+theme:
+  name: material
+
 nav:
   - Home: index.md
+  - Architektur & Modulskizze: ARCHITEKTUR_MODULSKIZZE.md
+  - Vorgehensplan: Vorgehensplan.md

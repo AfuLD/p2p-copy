@@ -16,6 +16,9 @@ p2p-copy receive --server wss://example.org --code ABC --out ./downloads
 ```
 
 ## Build (optional)
+
+creates wheel and source tar ball
+
 ```bash
 pip install build
 python -m build
