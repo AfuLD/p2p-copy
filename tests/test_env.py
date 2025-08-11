@@ -39,7 +39,7 @@ def _split_name_and_spec(req: str):
     # Remove environment markers (e.g., "; python_version >= '3.10'")
     req = req.split(";", 1)[0].strip()
     # Strip extras: pkg[extra]
-    req = re.sub(r"\[[^\]]*\]", "", req)
+    req = re.sub(r"\[[^]]*]", "", req)
 
     op = None
     ver = None
