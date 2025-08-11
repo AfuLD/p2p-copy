@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling>=1.21.1"]
+build-backend = "hatchling.build"
+
+[project]
+name = "p2p-copy"
+version = "0.1.0a0"
+description = "P2P-style file transfer over WSS with chunk streaming (lean skeleton)."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+  { name = "Your Name", email = "you@example.com" }
+]
+license = { text = "MIT" }
+keywords = ["p2p", "file-transfer", "websocket", "chunk-streaming"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Development Status :: 3 - Alpha",
+  "Programming Language :: Python :: 3 :: Only",
+  "Typing :: Typed",
+]
+
+dependencies = [
+  "typer>=0.12",
+  "websockets>=12.0",
+  "rich>=13.7",
+]
+
+[project.optional-dependencies]
+compression = ["zstandard>=0.22"]
+security = ["cryptography>=42.0"]
+
+[project.scripts]
+p2p-copy = "p2p_copy_cli.main:app"
