@@ -28,7 +28,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest==8.4.1"]
+dev = ["pytest>=8.4.1"]
 compression = ["zstandard>=0.22"]
 security = ["cryptography>=42.0"]
 
