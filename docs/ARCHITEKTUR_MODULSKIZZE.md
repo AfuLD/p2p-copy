@@ -19,7 +19,8 @@ p2p_copy_cli/
   __init__.py
   main.py                  # Typer-CLI (send/receive + Optionen)
 
-server/
+p2p_copy_server/
+  __init__.py
   relay.py                 # Asyncio + websockets, Matching per SHA-256(code)
   sessions.py              # Lebenszyklus, Pings, Limits
 
@@ -36,7 +37,7 @@ Im Projekt liegen die Pakete so:
 src/
   p2p_copy/...
   p2p_copy_cli/...
-server/
+  p2p_copy_server/...
 tests/
 benchmarks/
 docs/

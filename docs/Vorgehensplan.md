@@ -13,7 +13,7 @@
 
     Relay-Server (MVP): Asyncio + websockets, Session-Matching via SHA-256(passphrase), Weiterleitung ohne Persistenz („glue together“). Lauscht auf WSS:443. 
 
-Client (MVP): receive/send mit einfachem Chunk-Streaming (Start: 1 MiB, konfigurierbar), Binärweiterleitung, Schreiben auf Platte.
+Client (MVP): receive/send mit einfachem Chunk-Streaming (Start: 1 MiB, konfigurierbar), Binärweiterleitung, speichern.
 
     CLI-Befehle (MVP):
 

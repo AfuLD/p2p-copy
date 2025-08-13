@@ -6,6 +6,7 @@ from typing import List, Optional
 import typer
 from p2p_copy import send as api_send, receive as api_receive
 from p2p_copy.compressor import CompressMode
+from p2p_copy_server import run_relay
 
 app = typer.Typer(add_completion=False, help="p2p-copy — chunked file transfer over WSS (lean skeleton).")
 
@@ -33,6 +34,28 @@ def receive(
     raise SystemExit(asyncio.run(api_receive(
         code=code, server=server, resume=resume, out=out,
     )))
+
+@app.command("run-relay-server")
+def run_relay_server(
+        server_host: str = typer.Argument(..., help="Host, z. B. localhost"),
+        server_port: int = typer.Argument(..., help="Port"),
+        tls: bool = typer.Option(True, "--tls/--no-tls", help="TLS aktivieren (WSS)"),
+        certfile: Optional[str] = typer.Option(None, help="Pfad zum Zertifikat (bei --tls)"),
+        keyfile: Optional[str] = typer.Option(None, help="Pfad zum Key (bei --tls)"),
+):
+    """
+    Startet den Relay-Server (blockiert; mit Ctrl+C beenden).
+    """
+    try:
+        asyncio.run(run_relay(
+            host=server_host,
+            port=server_port,
+            use_tls=tls,
+            certfile=certfile,
+            keyfile=keyfile,
+        ))
+    except KeyboardInterrupt:
+        pass
 
 if __name__ == "__main__":
     app()

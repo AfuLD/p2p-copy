@@ -1,15 +1,8 @@
-"""
-Simple relay for Phase 2 (modern websockets asyncio API).
+from __future__ import annotations
 
-- Clients connect via WS(S) and first send a JSON 'hello' message:
-  {"type":"hello","code_hash_hex": "...","role":"sender"|"receiver","protocol_version":1}
-- The relay pairs connections by code_hash_hex when both roles are present.
-- After pairing, it pipes frames (text+binary) bidirectionally until one side closes.
-"""
-
-import argparse
 import asyncio
 import json
+import ssl
 from typing import Dict, Tuple, Optional
 
 from websockets.asyncio.server import serve, ServerConnection
@@ -17,8 +10,8 @@ from websockets.asyncio.server import serve, ServerConnection
 WAITING: Dict[str, Tuple[str, ServerConnection]] = {}  # code_hash -> (role, ws)
 LOCK = asyncio.Lock()
 
-async def handle(ws: ServerConnection):
-    # 1) Expect a hello JSON text frame
+async def _handle(ws: ServerConnection) -> None:
+    # 1) hello (Text) erwarten
     try:
         raw = await ws.recv()
         if isinstance(raw, bytes):
@@ -38,22 +31,20 @@ async def handle(ws: ServerConnection):
         await ws.close(code=1002, reason="Bad hello")
         return
 
-    # 2) Pair by code_hash (one sender + one receiver)
+    # 2) Pairing nach code_hash (genau ein Sender + ein Empfänger)
     peer: Optional[ServerConnection] = None
     async with LOCK:
         if code_hash in WAITING:
             other_role, other_ws = WAITING.pop(code_hash)
             if other_role == role:
-                # Same role waiting — keep original, reject second
                 await ws.close(code=1013, reason="Peer with same role already waiting")
-                WAITING[code_hash] = (other_role, other_ws)
+                WAITING[code_hash] = (other_role, other_ws)  # alten Wartenden behalten
                 return
             peer = other_ws
         else:
             WAITING[code_hash] = (role, ws)
 
     if peer is None:
-        # Wait (or cleanup if closed)
         try:
             await ws.wait_closed()
         finally:
@@ -62,7 +53,7 @@ async def handle(ws: ServerConnection):
                     WAITING.pop(code_hash, None)
         return
 
-    # 3) Pipe both directions
+    # 3) Bidirektionales Piping
     async def pipe(a: ServerConnection, b: ServerConnection):
         try:
             async for msg in a:
@@ -74,17 +65,21 @@ async def handle(ws: ServerConnection):
 
     await asyncio.gather(pipe(ws, peer), pipe(peer, ws))
 
-async def main(host: str, port: int):
-    print(f"Relay listening on ws://{host}:{port}")
-    async with serve(handle, host, port, max_size=None):
-        await asyncio.Future()  # run forever
+async def run_relay(
+        host: str,
+        port: int,
+        use_tls: bool = True,
+        certfile: Optional[str] = None,
+        keyfile: Optional[str] = None,
+) -> None:
+    ssl_ctx = None
+    if use_tls:
+        if not certfile or not keyfile:
+            raise RuntimeError("TLS requested but certfile/keyfile missing")
+        ssl_ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ssl_ctx.load_cert_chain(certfile, keyfile)
 
-if __name__ == "__main__":
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--host", default="localhost")
-    ap.add_argument("--port", type=int, default=8765)
-    args = ap.parse_args()
-    try:
-        asyncio.run(main(args.host, args.port))
-    except KeyboardInterrupt:
-        pass
+    scheme = "wss" if ssl_ctx else "ws"
+    print(f"Relay listening on {scheme}://{host}:{port}")
+    async with serve(_handle, host, port, max_size=None, ssl=ssl_ctx):
+        await asyncio.Future()  # läuft dauerhaft

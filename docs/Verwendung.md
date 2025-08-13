@@ -65,31 +65,63 @@ Optionen
 
 Beispiele
 ```bash
-# In ./downloads empfangen
-p2p-copy receive ws://localhost:8765 demo --out ./downloads
+# In /downloads empfangen
+p2p-copy receive ws://localhost:8765 demo --out ../downloads
 
 # In aktuelles Verzeichnis empfangen
 p2p-copy receive ws://localhost:8765 demo
 ```  
 ---  
 
+### `run-relay-server`
+
+**Synopsis**
+
+p2p-copy run-relay-server HOST PORT [--tls/--no-tls] [--certfile PATH] [--keyfile PATH]
+
+Argumente
+
+    HOST — Interface, z. B. localhost oder 0.0.0.0
+
+    PORT — verwendeter Port, z. B. 8765 oder 443
+
+Optionen
+
+    --tls/--no-tls — TLS (WSS) verwenden. Standard: -tls verwendet 
+
+    --certfile PATH, --keyfile PATH — notwendig, wenn --tls gesetzt ist
+
+    --help — Hilfe anzeigen
+
+Beispiele
+
+```bash
+# Lokaler Relay (ohne TLS)
+p2p-copy run-relay-server localhost 8765 --no-tls
+
+# # Mit TLS (Zertifikat+Key notwendig)
+p2p-copy run-relay-server 0.0.0.0 443 --certfile /etc/ssl/certs/fullchain.pem --keyfile /etc/ssl/private/privkey.pem
+```
+
+---
 
 ## Typischer Ablauf (3 Terminals)
 
 ```bash
 # Relay starten 
-python server/relay.py --host localhost --port 8765
+p2p-copy run-relay-server localhost 8765 --no-tls
 ```
 
 ```bash
 # Receiver (wartet)
-p2p-copy receive ws://localhost:8765 demo --out ./downloads
+p2p-copy receive ws://localhost:8765 demo --out ../downloads
 ```
 
 ```bash
 # Sender
-echo "test phase2" > sample.txt # erschafft das Testfile
+echo "hello test" > sample.txt # erschafft Testfile
 p2p-copy send ws://localhost:8765 demo sample.txt
+rm sample.txt # entfernt Testfile 
 ```
 
 Ergebnis: downloads/sample.txt enthält den gesendeten Inhalt.
