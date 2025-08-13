@@ -4,5 +4,5 @@ theme:
 
 nav:
   - Home: index.md
-  - Architektur & Modulskizze: ARCHITEKTUR_MODULSKIZZE.md
+  - Architektur & Modulskizze: Architekturskizze.md
   - Vorgehensplan: Vorgehensplan.md

@@ -1,4 +1,4 @@
-# p2p-copy — CLI Usage (Phase 2)
+# p2p-copy CLI Usage (Phase 2)
 
 > **Status (Phase 2):** Es wird nur die **erste** angegebene Datei übertragen.  
 > `--encrypt`, `--compress`, `--resume` sind vorbereitet, aber funktional erst in späteren Phasen.
@@ -14,7 +14,7 @@ p2p-copy send SERVER CODE FILE [FILE ...] [OPTIONS]
 
 Argumente (positional)
 
-    SERVER — Relay-URL, z. B. ws://localhost:8765 (für Produktion später wss://…)
+    SERVER — Relay-URL, z. B. ws://localhost:8765 (für Produktion später wss://…:443)
 
     CODE — gemeinsames Passwort/Code zum Pairing
 

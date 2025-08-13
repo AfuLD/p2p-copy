@@ -34,3 +34,21 @@ security = ["cryptography>=42.0"]
 
 [project.scripts]
 p2p-copy = "p2p_copy_cli.main:app"
+
+
+[tool.hatch.build.targets.wheel]
+packages = [
+  "src/p2p_copy",
+  "src/p2p_copy_cli",
+  "src/p2p_copy_server"
+]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "src/p2p_copy",
+  "src/p2p_copy_cli",
+  "src/p2p_copy_server",
+  "README.md",
+  "LICENSE",
+  "pyproject.toml"
+]
