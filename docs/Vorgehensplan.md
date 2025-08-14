@@ -1,4 +1,6 @@
 # Vorgehensplan (Phasen & Meilensteine)
+Angelehnt an das Softwareentwicklungsmodell "Vertical Slice Architecture".  
+[Artikel hierzu](https://software-architecture-summit.de/blog/software-architektur/vertical-slice-architecture-einfuhrung/) (Autor: Thomas Bayer, last accessed: 14.08.25)
 
 ## Phase 1 – Projektgrundlagen
 
@@ -35,9 +37,9 @@
 
     Adaptive Kompression: Heuristik (Sniffing der ersten Bytes), zstd bevorzugt, Fallback gzip, Modi auto|on|off. 
 
-Chunk-Tuning: Benchmark 512 KiB–4 MiB, konfigurierbar.
+    Chunk-Tuning: Benchmark 512 KiB–4 MiB, konfigurierbar.
 
-I/O-Optimierungen: memoryview, asynchrones File-I/O, Rahmen für spätere Multiplex-Streams (optional, „später“).
+    I/O-Optimierungen: memoryview, asynchrones File-I/O, Rahmen für spätere Multiplex-Streams (optional, „später“).
 
 ## Phase 5 – Sicherheit
 
