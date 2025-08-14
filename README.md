@@ -19,7 +19,7 @@ Using an installation command without [...] will not install them
 ## Install from git (editable)
 Clone repository first
 ```bash
-git clone <your-repo-url> p2p-copy
+git clone https://github.com/AfuLD/p2p-copy.git p2p-copy
 cd p2p-copy
 ```
 ```bash
