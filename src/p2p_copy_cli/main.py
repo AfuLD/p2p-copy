@@ -37,14 +37,14 @@ def receive(
 
 @app.command("run-relay-server")
 def run_relay_server(
-        server_host: str = typer.Argument(..., help="Host, z. B. localhost"),
+        server_host: str = typer.Argument(..., help="Host, e. g. localhost"),
         server_port: int = typer.Argument(..., help="Port"),
-        tls: bool = typer.Option(True, "--tls/--no-tls", help="TLS aktivieren (WSS)"),
-        certfile: Optional[str] = typer.Option(None, help="Pfad zum Zertifikat (bei --tls)"),
-        keyfile: Optional[str] = typer.Option(None, help="Pfad zum Key (bei --tls)"),
+        tls: bool = typer.Option(True, "--tls/--no-tls", help="use TLS to upgrade WS to WSS"),
+        certfile: Optional[str] = typer.Option(None, help="Path to certfile (bei --tls)"),
+        keyfile: Optional[str] = typer.Option(None, help="Path to Key (bei --tls)"),
 ):
     """
-    Startet den Relay-Server (blockiert; mit Ctrl+C beenden).
+    starts the relay server
     """
     try:
         asyncio.run(run_relay(

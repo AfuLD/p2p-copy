@@ -47,8 +47,9 @@ pip install "p2p-copy[compression,security]"
 ## Run CLI
 ```bash
 p2p-copy --help
-p2p-copy send --server wss://example.org --code ABC --files README.md
-p2p-copy receive --server wss://example.org --code ABC --out ./downloads
+p2p-copy send --help
+p2p-copy receive --help
+p2p-copy run-relay-server --help
 ```
 
 
