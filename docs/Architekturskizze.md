@@ -3,7 +3,7 @@
 > Hinweis: Im Repository liegen die Pakete unter `src/`. Die folgende Skizze zeigt die Module ohne `src/`‑Präfix, damit die Architektur klar bleibt.
 
 ```text
-p2p_copy/
+p2p_copy/                  # Kernbibliothek
   __init__.py
   api.py                   # High-level Python-API (send/receive)
   protocol.py              # Frame- und Nachrichtenformate
@@ -15,11 +15,11 @@ p2p_copy/
   io_utils.py              # asynchrones Dateihandling, Pfade, Tempfiles
   errors.py                # Exceptions
 
-p2p_copy_cli/
+p2p_copy_cli/              # Kommandozeilenoberfläche
   __init__.py
   main.py                  # Typer-CLI (send/receive + Optionen)
 
-p2p_copy_server/
+p2p_copy_server/           # Relay-Server zum weiterleiten von Nachrichten
   __init__.py
   relay.py                 # Asyncio + websockets, Matching per SHA-256(code)
   sessions.py              # Lebenszyklus, Pings, Limits
