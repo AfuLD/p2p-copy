@@ -111,8 +111,8 @@ async def async_test_phase3_api_multi_file_ws(tmp_path: Path):
             assert _sha256(out / "src" / rel) == _sha256(src / rel)
     finally:
         relay_task.cancel()
-        with pytest.raises((asyncio.CancelledError, asyncio.TimeoutError)):
-            await asyncio.wait_for(relay_task, timeout=0.5)
+        with pytest.raises(asyncio.TimeoutError):
+            await asyncio.wait_for(relay_task, timeout=0.1)
 
 
 # ---------- end-to-end via CLI (multi-file) ----------
