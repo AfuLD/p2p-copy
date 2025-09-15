@@ -8,17 +8,18 @@ from p2p_copy import send as api_send, receive as api_receive
 from p2p_copy.compressor import CompressMode
 from p2p_copy_server import run_relay
 
-app = typer.Typer(add_completion=False, help="p2p-copy — chunked file transfer over WSS (lean skeleton).")
+app = typer.Typer(add_completion=False, help="p2p-copy — chunked file transfer over WSS.")
 
 @app.command()
 def send(
-    server: str = typer.Argument(..., help="Relay WSS URL, e.g. wss://relay.example"),
+    server: str = typer.Argument(..., help="Relay WS(S) URL, e.g. wss://relay.example or ws://localhost:8765"),
     code: str = typer.Argument(..., help="Shared passphrase/code"),
-    files: List[str] = typer.Argument(..., help="Files to send"),
+    files: List[str] = typer.Argument(..., help="Files and/or directories to send"),
     encrypt: bool = typer.Option(False, help="Enable end-to-end encryption (future)"),
     compress: CompressMode = typer.Option(CompressMode.auto, help="Compression mode"),
     resume: bool = typer.Option(True, help="Attempt to resume interrupted transfers"),
 ):
+    """Send one or more files/directories."""
     raise SystemExit(asyncio.run(api_send(
         files=files, code=code, server=server, encrypt=encrypt,
         compress=compress, resume=resume,
@@ -26,26 +27,25 @@ def send(
 
 @app.command()
 def receive(
-    server: str = typer.Argument(..., help="Relay WSS URL, e.g. wss://relay.example"),
+    server: str = typer.Argument(..., help="Relay WS(S) URL, e.g. wss://relay.example or ws://localhost:8765"),
     code: str = typer.Argument(..., help="Shared passphrase/code"),
     resume: bool = typer.Option(True, help="Attempt to resume interrupted transfers"),
-    out: Optional[str] = typer.Option(None, help="Output directory"),
+    out: Optional[str] = typer.Option(".", "--out", "-o", help="Output directory"),
 ):
+    """Receive files into the target directory (default: .)."""
     raise SystemExit(asyncio.run(api_receive(
         code=code, server=server, resume=resume, out=out,
     )))
 
 @app.command("run-relay-server")
 def run_relay_server(
-        server_host: str = typer.Argument(..., help="Host, e. g. localhost"),
-        server_port: int = typer.Argument(..., help="Port"),
-        tls: bool = typer.Option(True, "--tls/--no-tls", help="use TLS to upgrade WS to WSS"),
-        certfile: Optional[str] = typer.Option(None, help="Path to certfile (bei --tls)"),
-        keyfile: Optional[str] = typer.Option(None, help="Path to Key (bei --tls)"),
+    server_host: str = typer.Argument("0.0.0.0", help="Host to bind"),
+    server_port: int = typer.Argument(8765, help="Port to bind"),
+    tls: bool = typer.Option(True, "--tls/--no-tls", help="Enable TLS (default: on)"),
+    certfile: Optional[str] = typer.Option(None, help="TLS cert file (PEM)"),
+    keyfile: Optional[str] = typer.Option(None, help="TLS key file (PEM)"),
 ):
-    """
-    starts the relay server
-    """
+    """Run the relay server (glue-only)."""
     try:
         asyncio.run(run_relay(
             host=server_host,

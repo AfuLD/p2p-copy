@@ -32,3 +32,17 @@
 * **Tests** : E2E-WS-Transfer, Code-Isolation, Ablehnung zweiter Sender, CLI-E2E (`--no-tls`), hinzugefügt und ausgeführt.
 * **Packaging-Feinschliff** : Hatch-Build-Targets für `p2p_copy_server` im `pyproject.toml` eingefügt. 
 * **Dokumentation/Usage** : Aktualisierte CLI-Usage (Markdown) mit Beispielen und neuen Befehldetails.
+
+
+## Phase 3 Protokoll & Integrität
+
+* **Manifest & Multi-File-Support** : Sender erstellt Manifest (Dateien + Verzeichnisse, rekursiv), Empfänger rekonstruiert Struktur unter Zielpfad.
+* **File-Framing** : Pro Datei `file`-Ankündigung und `file_eof`-Markierung mit erwarteter SHA-256.
+* **Chunk-Übertragung** : Binärframes tragen Sequenznummer + verkettete Prüfsumme, Empfänger prüft Reihenfolge & Chain sofort.
+* **End-to-End-Integrität** : Laufende Hash-Berechnung während Transfer; Abbruch bei Mismatch.
+* **API-Updates** : `send()` & `receive()` implementieren Mehrdatei-Logik, prüfen Integrität on-the-fly, erzeugen Zielverzeichnisse automatisch.
+* **CLI-Updates** : `p2p-copy send SERVER CODE FILE [FILE…]` unterstützt jetzt mehrere Dateien/Verzeichnisse, `receive` schreibt Baum unter `--out` (default: `.`).
+* **Hilfs-Module** : `iter_manifest_entries` in `io_utils.py` löst Verzeichnisbäume auf; 
+* **Relay-Server** : striktere Pairing-Logik (1 Sender + 1 Empfänger pro Code), sauberes Bidirektionales Weiterleiten, TLS weiterhin default=on.
+* **Tests** : Neue Tests `tests/test_phase3_features.py` prüfen Manifest-Roundtrip, API-Multi-File-Transfer inkl. Hashprüfung, CLI mit mehreren Dateien;
+* **Dokumentation** : Wire-Format (Hello, Manifest, FileBegin/End, Chunks mit Chain, EOF) in Code und Notizen festgehalten.

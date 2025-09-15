@@ -10,64 +10,75 @@ from websockets.asyncio.server import serve, ServerConnection
 WAITING: Dict[str, Tuple[str, ServerConnection]] = {}  # code_hash -> (role, ws)
 LOCK = asyncio.Lock()
 
+async def _pipe(a: ServerConnection, b: ServerConnection) -> None:
+    try:
+        async for frame in a:
+            await b.send(frame)
+    except Exception:
+        pass
+    finally:
+        try:
+            await b.close()
+        except Exception:
+            pass
+
 async def _handle(ws: ServerConnection) -> None:
-    # 1) hello (Text) erwarten
+    # 1) expect hello (text)
     try:
         raw = await ws.recv()
-        if isinstance(raw, bytes):
-            await ws.close(code=1002, reason="Expected hello text frame")
-            return
+    except Exception:
+        return
+    if not isinstance(raw, str):
+        await ws.close(code=1002, reason="First frame must be hello text"); return
+    try:
         hello = json.loads(raw)
     except Exception:
-        await ws.close(code=1002, reason="Invalid hello")
-        return
-
+        await ws.close(code=1002, reason="Bad hello json"); return
     if hello.get("type") != "hello":
-        await ws.close(code=1002, reason="First frame must be hello")
-        return
+        await ws.close(code=1002, reason="First frame must be hello"); return
     code_hash = hello.get("code_hash_hex")
     role = hello.get("role")
-    if not code_hash or role not in {"sender", "receiver"}:
-        await ws.close(code=1002, reason="Bad hello")
-        return
+    if not code_hash or role not in {"sender","receiver"}:
+        await ws.close(code=1002, reason="Bad hello"); return
 
-    # 2) Pairing nach code_hash (genau ein Sender + ein Empfänger)
+    # 2) Pair by code_hash (exactly one sender + one receiver)
     peer: Optional[ServerConnection] = None
     async with LOCK:
         if code_hash in WAITING:
             other_role, other_ws = WAITING.pop(code_hash)
             if other_role == role:
-                await ws.close(code=1013, reason="Peer with same role already waiting")
-                WAITING[code_hash] = (other_role, other_ws)  # alten Wartenden behalten
+                # two senders or two receivers — reject both
+                await other_ws.close(code=1013, reason="Duplicate role for code")
+                await ws.close(code=1013, reason="Duplicate role for code")
                 return
             peer = other_ws
         else:
             WAITING[code_hash] = (role, ws)
 
     if peer is None:
+        # wait until paired; then this handler exits when ws closes
         try:
-            await ws.wait_closed()
+            await asyncio.Future()
+        except asyncio.CancelledError:
+            pass
         finally:
             async with LOCK:
-                if WAITING.get(code_hash, (None, None))[1] is ws:
+                if WAITING.get(code_hash, (None,None))[1] is ws:
                     WAITING.pop(code_hash, None)
         return
 
-    # 3) Bidirektionales Piping
-    async def pipe(a: ServerConnection, b: ServerConnection):
-        try:
-            async for msg in a:
-                await b.send(msg)
-        except Exception:
-            pass
-        finally:
-            await b.close()
+    # 3) Start bi-directional piping
+    t1 = asyncio.create_task(_pipe(ws, peer))
+    t2 = asyncio.create_task(_pipe(peer, ws))
+    done, pending = await asyncio.wait({t1, t2}, return_when=asyncio.FIRST_COMPLETED)
+    for t in pending:
+        t.cancel()
 
-    await asyncio.gather(pipe(ws, peer), pipe(peer, ws))
+def run_sync(host: str, port: int, use_tls: bool, certfile: Optional[str], keyfile: Optional[str]) -> None:
+    asyncio.run(run_relay(host=host, port=port, use_tls=use_tls, certfile=certfile, keyfile=keyfile))
 
 async def run_relay(
-        host: str,
-        port: int,
+        *, host: str, port: int,
         use_tls: bool = True,
         certfile: Optional[str] = None,
         keyfile: Optional[str] = None,
@@ -82,4 +93,4 @@ async def run_relay(
     scheme = "wss" if ssl_ctx else "ws"
     print(f"Relay listening on {scheme}://{host}:{port}")
     async with serve(_handle, host, port, max_size=None, ssl=ssl_ctx):
-        await asyncio.Future()  # läuft dauerhaft
+        await asyncio.Future()  # run forever

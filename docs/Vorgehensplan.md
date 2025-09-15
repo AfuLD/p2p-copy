@@ -49,7 +49,7 @@ Angelehnt an das Softwareentwicklungsmodell "Vertical Slice Architecture".
 
 ## Phase 6 – Resumieren & Robustheit
 
-    Wiederaufnahme: Manifest enthält Chunk-Index/Hashes; Receiver meldet „fehlende Ranges“, Sender überträgt nur Lücken (rsync-ähnlich). 
+    Wiederaufnahme: Manifest enthält Chunk-Index/Hashes; Empfänger kann prüfen bis wohin er eine Datei korrekt erhalten hat. 
 
     Crash-Sicherheit: Temp-Dateien + atomare Renames; Idempotente Zielpfade; Konfliktstrategie.
 
