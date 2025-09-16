@@ -25,8 +25,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple, BinaryIO
 
-import pytest
-
 # ----------------------------- relay (shim) -----------------------------
 from websockets.asyncio.server import serve, ServerConnection
 from websockets.asyncio.client import connect
@@ -146,12 +144,11 @@ async def run_relay(*, host: str, port: int, use_tls: bool = False,
 # ----------------------------- API (shim) -----------------------------
 # We build on project modules where possible.
 
-from p2p_copy.compressor import CompressMode  # may already exist
 from p2p_copy.checksum import ChainedChecksum
 from p2p_copy.chunker import read_in_chunks
 from p2p_copy.io_utils import iter_manifest_entries, ensure_dir
 from p2p_copy.protocol import (
-    Hello, Manifest, ManifestEntry, code_to_hash_hex, loads, EOF,
+    Hello, Manifest, ManifestEntry, code_to_hash_hex, EOF,
     file_begin, FILE_EOF, pack_chunk, unpack_chunk
 )
 
