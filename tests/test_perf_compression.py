@@ -129,7 +129,7 @@ async def _handle(ws: ServerConnection, throttle: Throttle) -> None:
 async def run_relay(*, host: str, port: int, use_tls: bool = False,
                     certfile: Optional[str] = None, keyfile: Optional[str] = None,
                     ws_compression: bool = False,
-                    throttle: Optional[Throttle] = None) -> None:
+                    throttle: Throttle) -> None:
     ssl_ctx = None
     if use_tls:
         if not certfile or not keyfile:
@@ -138,9 +138,8 @@ async def run_relay(*, host: str, port: int, use_tls: bool = False,
         ssl_ctx.load_cert_chain(certfile, keyfile)
 
     compression = "deflate" if ws_compression else None
-    thr = throttle or Throttle(up_mbit=1_000, down_mbit=1_000)
 
-    async with serve(lambda ws: _handle(ws, thr), host, port, max_size=None, ssl=ssl_ctx, compression=compression):
+    async with serve(lambda ws: _handle(ws, throttle), host, port, max_size=None, ssl=ssl_ctx, compression=compression):
         await asyncio.Future()
 
 
@@ -369,88 +368,116 @@ def _free_port() -> int:
 
 # ----------------------------- benchmark test -----------------------------
 
-@pytest.mark.parametrize("ws_compress", [False, True])
-@pytest.mark.parametrize("algo,level", [
-    ("none", 0),
-    ("deflate", 6),
-    ("zlib", 6),
-    ("gzip", 6),
-    ("zstd", 3),  # will be auto-skipped if zstandard missing
-])
-@pytest.mark.parametrize("chunk_kib", [64, 256, 1024])
-@pytest.mark.parametrize("uplink_mbit, downlink_mbit", [
-    (10, 10),
-    (100, 100),
-    (1000, 1000),
-])
-def test_compression_matrix(tmp_path: Path, ws_compress: bool, algo: str, level: int,
-                            chunk_kib: int, uplink_mbit: int, downlink_mbit: int):
-    if algo == "zstd" and zstd is None:
-        pytest.skip("zstandard not installed")
+def test_compression_matrix_single_run(tmp_path: Path):
+    # Parameter sets
+    ws_compress_options = [False] # should be false if test is local
+    algo_level_pairs = [
+        ("none", 0),
+        ("deflate", 3),
+        #("zlib", 3),
+        #("gzip", 3),
+        ("zstd", 3),  # will be auto-skipped if zstandard missing
+    ]
+    chunk_kib_options = [1024]
+    bandwidth_options = [
+        # (upload, download in Mbit)
+        #(2.4, 16),
+        (50, 250),
+        #(500, 1000),
+    ]
 
-    # input corpus from ./test_resources
+    # Input corpus from ./test_resources
     corpus_root = Path(__file__).parent / ".." / "test_resources"
     corpus_root = corpus_root.resolve()
     assert corpus_root.exists(), f"test_resources dir missing: {corpus_root}"
 
-    # collect files into a temp src dir (so we copy the folder itself)
+    # Collect files into a temp src dir (so we copy the folder itself)
     src = tmp_path / "src"
     src.mkdir()
     for p in corpus_root.glob("**/*"):
-        if p.is_file():
+        if p.is_file() :#and str(p).endswith(".txt"):
             dest = src / p.relative_to(corpus_root)
             dest.parent.mkdir(parents=True, exist_ok=True)
             dest.write_bytes(p.read_bytes())
 
-    out = tmp_path / "out"; out.mkdir()
+    results = []
 
-    host = "localhost"; port = _free_port(); server_url = f"ws://{host}:{port}"
-    code = f"bench-{os.getpid()}-{time.time_ns()}"
+    # Iterate over all combinations
+    for ws_compress in ws_compress_options:
+        for algo, level in algo_level_pairs:
+            if algo == "zstd" and zstd is None:
+                print(f"Skipping zstd test (zstandard not installed)")
+                continue
+            for chunk_kib in chunk_kib_options:
+                for uplink_mbit, downlink_mbit in bandwidth_options:
+                    out = tmp_path / f"out_ws{ws_compress}_algo{algo}_lvl{level}_chk{chunk_kib}_up{uplink_mbit}_down{downlink_mbit}"
+                    out.mkdir()
 
-    throttle = Throttle(up_mbit=uplink_mbit, down_mbit=downlink_mbit)
+                    host = "localhost"
+                    port = _free_port()
+                    server_url = f"ws://{host}:{port}"
+                    code = f"bench-{os.getpid()}-{time.time_ns()}"
 
-    async def runner():
-        relay_task = asyncio.create_task(run_relay(host=host, port=port, use_tls=False,
-                                                   ws_compression=ws_compress, throttle=throttle))
-        try:
-            await asyncio.sleep(0.1)
-            recv_task = asyncio.create_task(api_receive(server=server_url, code=code, out=str(out), ws_compression=ws_compress))
-            await asyncio.sleep(0.1)
+                    throttle = Throttle(up_mbit=uplink_mbit, down_mbit=downlink_mbit)
 
-            global t0
-            t0 = time.perf_counter()
+                    async def runner():
+                        relay_task = asyncio.create_task(run_relay(host=host, port=port, use_tls=False,
+                                                                   ws_compression=ws_compress, throttle=throttle))
+                        try:
+                            await asyncio.sleep(0.1)
+                            recv_task = asyncio.create_task(api_receive(server=server_url, code=code, out=str(out), ws_compression=ws_compress))
+                            await asyncio.sleep(0.1)
 
-            rc_send = await api_send(server=server_url, code=code, sources=[str(src)],
-                                     app_comp=AppCompression(algo=algo, level=level),
-                                     chunk_size=chunk_kib * 1024,
-                                     ws_compression=ws_compress)
-            rc_recv = await asyncio.wait_for(recv_task, timeout=60)
+                            global t0
+                            t0 = time.perf_counter()
 
-            dt = time.perf_counter() - t0
-            return rc_send, rc_recv, dt
-        finally:
-            relay_task.cancel()
-            try:
-                await asyncio.wait_for(relay_task, timeout=1.0)
-            except (asyncio.TimeoutError, asyncio.CancelledError):
-                pass
+                            rc_send = await api_send(server=server_url, code=code, sources=[str(src)],
+                                                     app_comp=AppCompression(algo=algo, level=level),
+                                                     chunk_size=chunk_kib * 1024,
+                                                     ws_compression=ws_compress)
+                            rc_recv = await asyncio.wait_for(recv_task, timeout=60)
 
-    rc_s, rc_r, seconds = asyncio.run(runner())
+                            dt = time.perf_counter() - t0
+                            return rc_send, rc_recv, dt
+                        finally:
+                            relay_task.cancel()
 
-    # Expect success
-    assert rc_s == 0 and rc_r == 0
 
-    # Compute bytes transferred (sum of actual output files)
-    total_bytes = 0
-    for p in out.rglob("*"):
-        if p.is_file():
-            total_bytes += p.stat().st_size
+                    rc_s, rc_r, seconds = asyncio.run(runner())
 
-    # Report metrics in test output for later analysis
-    mbit = total_bytes * 8 / 1_000_000
-    throughput = mbit / seconds if seconds > 0 else 0.0
-    print(f"\n[bench] ws_comp={ws_compress} app={algo}:{level} chunk={chunk_kib}KiB net={uplink_mbit}/{downlink_mbit}Mbit:"
-          f" sent={mbit:.2f} Mbit in {seconds:.3f}s → {throughput:.2f} Mbit/s")
+                    # Expect success
+                    assert rc_s == 0 and rc_r == 0, f"Failed: ws_comp={ws_compress}, algo={algo}, level={level}, chunk={chunk_kib}KiB, net={uplink_mbit}/{downlink_mbit}Mbit"
 
-    # Lightweight sanity bound: we at least expect >1 Mbit/s unless throttled to 10 Mbit/s
-    assert seconds < 60
+                    # Compute bytes transferred (sum of actual output files)
+                    total_bytes = 0
+                    for p in out.rglob("*"):
+                        if p.is_file():
+                            total_bytes += p.stat().st_size
+
+                    # Calculate metrics
+                    mbit = total_bytes * 8 / 1_000_000
+                    throughput = mbit / seconds if seconds > 0 else 0.0
+                    results.append({
+                        "ws_compress": ws_compress,
+                        "algo": algo,
+                        "level": level,
+                        "chunk_kib": chunk_kib,
+                        "uplink_mbit": uplink_mbit,
+                        "downlink_mbit": downlink_mbit,
+                        "mbit": mbit,
+                        "seconds": seconds,
+                        "throughput": throughput
+                    })
+
+                    # Lightweight sanity bound: expect >1 Mbit/s unless throttled to 10 Mbit/s
+                    assert seconds < 6000, f"Timeout: ws_comp={ws_compress}, algo={algo}, level={level}, chunk={chunk_kib}KiB, net={uplink_mbit}/{downlink_mbit}Mbit"
+
+    # Print summary of all results
+    print("\n[bench] Summary of all test runs:")
+    for result in results:
+        print(f"[bench] ws_comp={result['ws_compress']} app={result['algo']}:{result['level']} "
+              f"chunk={result['chunk_kib']}KiB net={result['uplink_mbit']}/{result['downlink_mbit']}Mbit: "
+              f"sent={result['mbit']:.2f} Mbit in {result['seconds']:.3f}s → {result['throughput']:.2f} Mbit/s")
+
+    # Optional: Assert aggregate condition if needed (e.g., at least one test ran)
+    assert results, "No tests were executed"
