@@ -217,6 +217,10 @@ async def api_send(server: str, code: str, sources: Iterable[str], *,
         # announce per-file compression settings
         comp_announce = json.dumps({"type": "comp", "algo": app_comp.algo, "level": app_comp.level})
 
+        # Track total input vs compressed output
+        orig_bytes = 0
+        comp_bytes = 0
+
         for abs_p, rel_p, size in resolved:
             await ws.send(file_begin(rel_p.as_posix(), size))
             await ws.send(comp_announce)
@@ -228,8 +232,10 @@ async def api_send(server: str, code: str, sources: Iterable[str], *,
                 cctx = zstd.ZstdCompressor(level=app_comp.level)
                 with abs_p.open("rb") as fp:
                     for chunk in read_in_chunks(fp, chunk_size=chunk_size):
+                        orig_bytes += len(chunk)
                         # Each chunk compressed as its own zstd frame; concatenation is valid
                         payload = cctx.compress(chunk)
+                        comp_bytes += len(payload)
                         frame: bytes = pack_chunk(seq, chained_checksum, payload)
                         await ws.send(frame)
                         seq += 1
@@ -237,14 +243,24 @@ async def api_send(server: str, code: str, sources: Iterable[str], *,
                 cobj = app_comp.compressor()
                 with abs_p.open("rb") as fp:
                     for chunk in read_in_chunks(fp, chunk_size=chunk_size):
-                        payload = chunk if cobj is None else (cobj.compress(chunk) + cobj.flush(zlib.Z_SYNC_FLUSH))
+                        orig_bytes += len(chunk)
+                        if cobj is None:
+                            payload = chunk
+                        else:
+                            payload = cobj.compress(chunk) + cobj.flush(zlib.Z_SYNC_FLUSH)
+                        comp_bytes += len(payload)
                         frame: bytes = pack_chunk(seq, chained_checksum, payload)
                         await ws.send(frame)
                         seq += 1
 
             await ws.send(FILE_EOF)
-
         await ws.send(EOF)
+        # After file loop, compute ratio
+        if orig_bytes > 0:
+            ratio = comp_bytes / orig_bytes
+            print(f"[bench] algo={app_comp.algo}:{app_comp.level} "
+                  f"original={orig_bytes} bytes, compressed={comp_bytes} bytes, "
+                  f"ratio={ratio:.3f}")
     return 0
 
 
@@ -370,10 +386,10 @@ def test_compression_matrix_single_run(tmp_path: Path):
     ws_compress_options = [False] # should be false if test is local
     algo_level_pairs = [
         ("none", 0),
-        ("deflate", 3),
-        #("zlib", 3),
-        #("gzip", 3),
-        ("zstd", 3),  # will be auto-skipped if zstandard missing
+        ("zstd", 3),
+        ("deflate", 6),
+        #("zlib", 6),
+        #("gzip", 6),
     ]
     chunk_kib_options = [1024]
     bandwidth_options = [
@@ -392,7 +408,7 @@ def test_compression_matrix_single_run(tmp_path: Path):
     src = tmp_path / "src"
     src.mkdir()
     for p in corpus_root.glob("**/*"):
-        if p.is_file() :#and str(p).endswith(".txt"):
+        if p.is_file():# and str(p).endswith(".jpg"):
             dest = src / p.relative_to(corpus_root)
             dest.parent.mkdir(parents=True, exist_ok=True)
             dest.write_bytes(p.read_bytes())
