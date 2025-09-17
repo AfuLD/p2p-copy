@@ -42,14 +42,12 @@ async def send(server: str, code: str, files: Iterable[str],
 
         # Send files
         for abs_p, rel_p, size in resolved:
-            # Determine compression mode for this file
             with abs_p.open("rb") as fp:
-                use_compression, compression_type = compressor.determine_compression(fp)
-                compressor.use_compression = use_compression
-                compressor.compression_type = compression_type
-
+                # Determine compression mode for this file
+                compressor.determine_compression(fp)
                 # Send file_begin with compression mode
-                await ws.send(file_begin(rel_p.as_posix(), size, compression_type))
+                await ws.send(file_begin(rel_p.as_posix(), size, compressor.compression_type))
+
                 chained_checksum = ChainedChecksum()
                 seq = 0
 

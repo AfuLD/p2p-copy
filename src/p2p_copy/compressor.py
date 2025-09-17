@@ -19,21 +19,18 @@ class Compressor:
 
     def determine_compression(self, fp: BinaryIO) -> tuple[bool, str]:
         """Determine if compression should be used for the file and return (use_compression, compression_type)."""
-        if self.mode == CompressMode.off:
-            return False, "none"
-        if self.mode == CompressMode.on:
-            return True, "zstd"
-        # Auto mode: test first chunk
-        first_chunk = fp.read(CHUNK_SIZE)
-        fp.seek(0)  # Reset file pointer after reading
-        if not first_chunk:
-            return False, "none"
-        if self.cctx is None:
-            return False, "none"
-        compressed = self.cctx.compress(first_chunk)
-        compression_ratio = len(compressed) / len(first_chunk) if first_chunk else 1.0
-        use_compression = compression_ratio < 0.95  # Enable if compressed size < 95% of original
-        return use_compression, "zstd" if use_compression else "none"
+        if self.mode == CompressMode.auto:
+            # Auto mode: test first chunk
+            first_chunk = fp.read(CHUNK_SIZE)
+            fp.seek(0)  # Reset file pointer after reading
+            if not first_chunk:
+                return False, "none"
+            if self.cctx is None:
+                return False, "none"
+            compressed = self.cctx.compress(first_chunk)
+            compression_ratio = len(compressed) / len(first_chunk) if first_chunk else 1.0
+            self.use_compression = compression_ratio < 0.95  # Enable if compressed size < 95% of original
+            self.compression_type = "zstd" if self.use_compression else "none"
 
     def compress(self, chunk: bytes) -> bytes:
         """Compress a chunk if compression is enabled."""
