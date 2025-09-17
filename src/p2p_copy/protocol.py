@@ -41,8 +41,8 @@ class Manifest:
     def to_json(self) -> str:
         return dumps({"type":"manifest","entries":[asdict(e) for e in self.entries]})
 
-def file_begin(path: str, size: int) -> str:
-    return dumps({"type":"file","path":path,"size":size})
+def file_begin(path: str, size: int, compression: str = "none") -> str:
+    return dumps({"type":"file","path":path,"size":size,"compression":compression})
 
 FILE_EOF = dumps({"type":"file_eof"})
 
