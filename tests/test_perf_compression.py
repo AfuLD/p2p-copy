@@ -223,7 +223,7 @@ async def api_send(server: str, code: str, sources: Iterable[str], *,
 
         for abs_p, rel_p, size in resolved:
             await ws.send(file_begin(rel_p.as_posix(), size))
-            await ws.send(comp_announce)
+            last_send = ws.send(comp_announce)
 
             chained_checksum = ChainedChecksum()
             seq = 0
@@ -237,7 +237,8 @@ async def api_send(server: str, code: str, sources: Iterable[str], *,
                         payload = cctx.compress(chunk)
                         comp_bytes += len(payload)
                         frame: bytes = pack_chunk(seq, chained_checksum, payload)
-                        await ws.send(frame)
+                        await last_send
+                        last_send = ws.send(frame)
                         seq += 1
             else:
                 cobj = app_comp.compressor()
@@ -250,9 +251,11 @@ async def api_send(server: str, code: str, sources: Iterable[str], *,
                             payload = cobj.compress(chunk) + cobj.flush(zlib.Z_SYNC_FLUSH)
                         comp_bytes += len(payload)
                         frame: bytes = pack_chunk(seq, chained_checksum, payload)
-                        await ws.send(frame)
+                        await last_send
+                        last_send = ws.send(frame)
                         seq += 1
 
+            await last_send
             await ws.send(FILE_EOF)
         await ws.send(EOF)
         # After file loop, compute ratio
@@ -395,8 +398,8 @@ def test_compression_matrix_single_run(tmp_path: Path):
     bandwidth_options = [
         # (upload, download in Mbit)
         #(2.4, 16),
-        (50, 250),
-        #(500, 1000),
+        #(50, 250),
+        (500, 1000),
     ]
 
     # Input corpus from ./test_resources

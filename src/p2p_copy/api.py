@@ -46,7 +46,7 @@ async def send(server: str, code: str, files: Iterable[str],
                 # Determine compression mode for this file
                 compressor.determine_compression(fp)
                 # Send file_begin with compression mode
-                await ws.send(file_begin(rel_p.as_posix(), size, compressor.compression_type))
+                last_send = ws.send(file_begin(rel_p.as_posix(), size, compressor.compression_type))
 
                 chained_checksum = ChainedChecksum()
                 seq = 0
@@ -54,9 +54,11 @@ async def send(server: str, code: str, files: Iterable[str],
                 for chunk in read_in_chunks(fp, chunk_size=CHUNK_SIZE):
                     chunk = compressor.compress(chunk)
                     frame: bytes = pack_chunk(seq, chained_checksum, chunk)
-                    await ws.send(frame)
+                    await last_send
+                    last_send = ws.send(frame)
                     seq += 1
 
+            await last_send
             await ws.send(FILE_EOF)
 
         await ws.send(EOF)
