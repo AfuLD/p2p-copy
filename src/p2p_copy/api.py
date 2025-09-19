@@ -18,7 +18,7 @@ from .protocol import (
 
 async def send(server: str, code: str, files: Iterable[str],
                encrypt: bool = False,                       # reserved (phase 4+)
-               compress: CompressMode = CompressMode.auto,  # now used
+               compress: CompressMode = CompressMode.auto,
                resume: bool = True,                         # reserved (phase 5)
                ) -> int:
     # Build manifest
@@ -43,16 +43,24 @@ async def send(server: str, code: str, files: Iterable[str],
         # Send files
         for abs_p, rel_p, size in resolved:
             with abs_p.open("rb") as fp:
-                # Determine compression mode for this file
-                compressor.determine_compression(fp)
-                # Send file_begin with compression mode
-                last_send = ws.send(file_begin(rel_p.as_posix(), size, compressor.compression_type))
-
                 chained_checksum = ChainedChecksum()
                 seq = 0
 
-                for chunk in read_in_chunks(fp, chunk_size=CHUNK_SIZE):
-                    chunk = compressor.compress(chunk)
+                # Determine compression mode for this file and get first chunk
+                chunk = compressor.determine_compression(fp)
+
+                # Send file_begin with compression mode info for receiver
+                last_send = ws.send(file_begin(rel_p.as_posix(), size, compressor.compression_type))
+
+                # send the first prepared compressed chunk
+                frame: bytes = pack_chunk(seq, chained_checksum, chunk)
+                await last_send
+                last_send = ws.send(frame)
+                seq += 1
+
+                # send remaining chunks
+                for _chunk in read_in_chunks(fp, chunk_size=CHUNK_SIZE):
+                    chunk = compressor.compress(_chunk)
                     frame: bytes = pack_chunk(seq, chained_checksum, chunk)
                     await last_send
                     last_send = ws.send(frame)
@@ -173,5 +181,6 @@ async def receive(server: str, code: str,
 
     # ensure no file left open
     if cur_fp is not None:
+        close_current()
         print("[p2p_copy] receive(): stream ended while file open"); return 4
     return 0

@@ -5,7 +5,9 @@ import hashlib
 
 
 class ChainedChecksum:
-    """chained checksum over a byte stream"""
+    """
+    Generates chained checksum over binary, potentially compressed, chunks of a file.
+    """
 
     def __init__(self, seed: bytes = b"") -> None:
         self.prev_chain = seed
