@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from typing import Iterable, Optional, List, Tuple, BinaryIO
 
@@ -7,8 +8,7 @@ from websockets.asyncio.client import connect
 
 from p2p_copy.compressor import CompressMode, Compressor
 from .checksum import ChainedChecksum
-from .chunker import read_in_chunks, CHUNK_SIZE
-from .io_utils import iter_manifest_entries, ensure_dir
+from .io_utils import read_in_chunks, iter_manifest_entries, ensure_dir
 from .protocol import (
     Hello, Manifest, ManifestEntry, code_to_hash_hex, loads, EOF,
     file_begin, FILE_EOF, pack_chunk, unpack_chunk
@@ -59,7 +59,7 @@ async def send(server: str, code: str, files: Iterable[str],
                 seq += 1
 
                 # send remaining chunks
-                for _chunk in read_in_chunks(fp, chunk_size=CHUNK_SIZE):
+                async for _chunk in read_in_chunks(fp):
                     chunk = compressor.compress(_chunk)
                     frame: bytes = pack_chunk(seq, chained_checksum, chunk)
                     await last_send
@@ -122,8 +122,8 @@ async def receive(server: str, code: str,
                 # Decompress if necessary
                 payload = compressor.decompress(payload)
 
-                # Write
-                cur_fp.write(payload)
+                # Write to disk without blocking the event-loop
+                await asyncio.to_thread(cur_fp.write, payload)
                 bytes_written += len(payload)
                 cur_seq_expected += 1
                 continue

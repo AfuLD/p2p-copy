@@ -7,12 +7,11 @@ p2p_copy/                  # Kernbibliothek
   __init__.py
   api.py                   # High-level Python-API (send/receive)
   protocol.py              # Frame- und Nachrichtenformate
-  chunker.py               # Lesen/Schreiben in Chunks (≈1 MiB, konfigurierbar)
   compressor.py            # adaptive Kompression (auto|on|off; zstd bevorzugt)
   crypto.py                # optionale E2E-Verschlüsselung (AES-256-GCM + KDF)
   checksum.py              # Datei-Hash + Ketten-Checksummen
   resume.py                # Lücken-Ermittlung und -Übertragung
-  io_utils.py              # asynchrones Dateihandling, Pfade, Tempfiles
+  io_utils.py              # asynchrones Dateihandling, Pfade, Iterator
   errors.py                # Exceptions
 
 p2p_copy_cli/              # Kommandozeilenoberfläche

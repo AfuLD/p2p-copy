@@ -145,7 +145,7 @@ async def run_relay(*, host: str, port: int, use_tls: bool = False,
 # We build on project modules where possible.
 
 from p2p_copy.checksum import ChainedChecksum
-from p2p_copy.chunker import read_in_chunks
+from p2p_copy.io_utils import read_in_chunks
 from p2p_copy.io_utils import iter_manifest_entries, ensure_dir
 from p2p_copy.protocol import (
     Hello, Manifest, ManifestEntry, code_to_hash_hex, EOF,
@@ -231,7 +231,7 @@ async def api_send(server: str, code: str, sources: Iterable[str], *,
             if app_comp.algo == "zstd" and zstd is not None:
                 cctx = zstd.ZstdCompressor(level=app_comp.level)
                 with abs_p.open("rb") as fp:
-                    for chunk in read_in_chunks(fp, chunk_size=chunk_size):
+                    async for chunk in read_in_chunks(fp, chunk_size=chunk_size):
                         orig_bytes += len(chunk)
                         # Each chunk compressed as its own zstd frame; concatenation is valid
                         payload = cctx.compress(chunk)
@@ -243,7 +243,7 @@ async def api_send(server: str, code: str, sources: Iterable[str], *,
             else:
                 cobj = app_comp.compressor()
                 with abs_p.open("rb") as fp:
-                    for chunk in read_in_chunks(fp, chunk_size=chunk_size):
+                    async for chunk in read_in_chunks(fp, chunk_size=chunk_size):
                         orig_bytes += len(chunk)
                         if cobj is None:
                             payload = chunk

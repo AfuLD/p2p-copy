@@ -1,13 +1,56 @@
 from __future__ import annotations
+
+import asyncio
+import collections
 from pathlib import Path
-from typing import Iterable, Iterator, Tuple
+from typing import Iterable, Iterator, Tuple, BinaryIO
+
+CHUNK_SIZE = 1 << 20  # 1 MiB
+
+async def read_in_chunks(fp: BinaryIO, *, chunk_size: int = CHUNK_SIZE) -> collections.AsyncIterable[bytes]:
+    """reads in bytes from a file in chunks, starts at current file position"""
+    while True:
+        # Read from disk without blocking the event-loop
+        chunk = await asyncio.to_thread(fp.read,chunk_size)
+        if not chunk:
+            break
+        yield chunk
 
 def iter_manifest_entries(paths: Iterable[str]) -> Iterator[Tuple[Path, Path, int]]:
-    """
-    Expand a list of input paths (files or directories) into a stream of
-    (abs_path, rel_path, size) tuples. The rel_path keeps the provided top-level
-    name (basename of the argument), so sending `/foo/bar` will produce
-    `bar/...` on the receiver.
+    """Yields tuples of (absolute path, relative path, size) for files in the given paths.
+
+    Parameters
+    ----------
+    paths : Iterable[str]
+        An iterable of strings representing file or directory paths.
+
+    Yields
+    ------
+    Tuple[Path, Path, int]
+        A tuple containing:
+        - Absolute path (Path): The resolved absolute path of the file.
+        - Relative path (Path): The path relative to the input path's basename
+          (e.g., for input `/foo/mydir`, files yield `mydir/subpath`).
+        - Size (int): The file size in bytes.
+
+    Examples
+    --------
+    For a single file:
+    >>> list(iter_manifest_entries(["/foo/bar.txt"]))
+    [(Path("/foo/bar.txt"), Path("bar.txt"), 1234)]
+
+    For a directory:
+    >>> list(iter_manifest_entries(["/foo/mydir"]))
+    [(Path("/foo/mydir/file1.txt"), Path("mydir/file1.txt"), 100),
+     (Path("/foo/mydir/subdir/file2.txt"), Path("mydir/subdir/file2.txt"), 200)]
+
+    Notes
+    -----
+    - Files in directories are yielded in sorted order (alphabetically by path).
+    - Non-existent paths are silently skipped.
+    - Symlinks are resolved to their target paths.
+    - Tilde (~) is expanded to the user's home directory.
+    - May raise FileNotFoundError or PermissionError if file access fails.
     """
     for raw in paths:
         p = Path(raw).expanduser()

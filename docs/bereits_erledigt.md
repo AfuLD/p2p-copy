@@ -46,3 +46,19 @@
 * **Relay-Server** : striktere Pairing-Logik (1 Sender + 1 Empfänger pro Code), sauberes Bidirektionales Weiterleiten, TLS weiterhin default=on.
 * **Tests** : Neue Tests `tests/test_phase3_features.py` prüfen Manifest-Roundtrip, API-Multi-File-Transfer inkl. Hashprüfung, CLI mit mehreren Dateien;
 * **Dokumentation** : Wire-Format (Hello, Manifest, FileBegin/End, Chunks mit Chain, EOF) in Code und Notizen festgehalten.
+
+
+## Phase 4 Kompression & Optimierungen
+
+* **Chunk-Größe optimiert:** 1MB am besten, kein großer Unterschied.
+* **Performancevergleich Kompressionsmethoden:** `zstd` auf App-Ebene deutlich am besten.
+* **Datei-Kompression integriert:** `compressor.py` implementiert mit `CompressMode` (`off`, `on`, `auto`) und Zstd (Level 3).
+* **Automatische Kompressionsentscheidung:** Sender prüft ersten Chunk und aktiviert Kompression nur bei > 5 % Einsparung.
+* **Protokoll-Erweiterung:** `file_begin` kündigt pro Datei die gewählte Kompressionsart (`zstd`/`none`) an; Empfänger dekomprimiert entsprechend.
+* **API-Updates:** `send()` und `receive()` nutzen Kompressor; WebSocket-Kompression explizit auf `None` gesetzt.
+* **CLI-Optionen:** `--compress {off,on,auto}` ergänzt, analog zur API.
+* **Integrität trotz Kompression:** Chained Checksum wird über die tatsächlich übertragenen Bytes (komprimiert) gebildet, Größenprüfung bezieht sich auf Originaldateien.
+* **Tests:** neue Tests prüfen End-to-End-Verhalten aller Modi (API & CLI), Auto-Fall mit komprimierbaren und nicht komprimierbaren Dateien, Timing-Messungen für Vergleich.
+* **Code-Logik:** Kompression entkoppelt von API, zentral in `compressor.py`.
+* **Dokumentation:** Erweiterung der Wire-Format-Notizen um Kompressionsangaben; Hinweise zu Performance und Einsatzgrenzen.  
+* **Async I/O:** Disk read und write in async event-loop eingebunden

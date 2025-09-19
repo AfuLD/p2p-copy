@@ -63,6 +63,8 @@ Angelehnt an das Softwareentwicklungsmodell "Vertical Slice Architecture".
 
 ## Phase 8 – Doku, Benchmarks, Release
 
+    Doc-Strings: in NumPy style formulieren
+    
     Doku: MkDocs (Architektur, Protokoll, Deployment, Security-Notes, Tuning).
 
     Benchmarks: Datensätze (Text, Binär, Mix), Metriken (Durchsatz, CPU, Kompressionsgewinn, Latenz). Vergleich: ohne/mit Kompression, ohne/mit E2E.
