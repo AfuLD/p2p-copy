@@ -250,7 +250,7 @@ def test_transfer_timings_for_compression_modes(tmp_path, capsys):
         results = {}
         for label, payload in [("compressible", comp), ("incompressible", incomp)]:
             results[label] = {}
-            for mode in (CompressMode.off, CompressMode.on, CompressMode.auto):
+            for mode in (CompressMode.off,  CompressMode.auto, CompressMode.on):
                 # warm up
                 await asyncio.sleep(0)
                 elapsed = await _time_one_transfer(payload, mode, tmp_path, f"{label}", server_url)
