@@ -40,7 +40,6 @@ class Compressor:
                 return compressed if self.use_compression else first_chunk
 
 
-
     def compress(self, chunk: bytes) -> bytes:
         """Compress a chunk if compression is enabled."""
         if self.use_compression and self.cctx:

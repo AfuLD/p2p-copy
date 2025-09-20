@@ -1,16 +1,11 @@
 from __future__ import annotations
 from dataclasses import dataclass, asdict
 from typing import Literal, Sequence, Any, Dict, Tuple
-import json, hashlib, struct
+import json, struct
 
-from p2p_copy.checksum import ChainedChecksum
-
-PROTOCOL_VERSION: int = 1
+PROTOCOL_VERSION: int = 5
 
 # --- helpers ---------------------------------------------------------
-
-def code_to_hash_hex(code: str) -> str:
-    return hashlib.sha256(code.encode("utf-8")).hexdigest()
 
 def dumps(msg: Dict[str, Any]) -> str:
     return json.dumps(msg, separators=(",", ":"), ensure_ascii=False)
@@ -41,8 +36,20 @@ class Manifest:
     def to_json(self) -> str:
         return dumps({"type":"manifest","entries":[asdict(e) for e in self.entries]})
 
+@dataclass(frozen=True)
+class EncryptedManifest:
+    type: Literal["enc_manifest"]
+    nonce: str # used for AES-GCM if encryption is enabled
+    hidden_manifest: str
+    def to_json(self) -> str:
+        return dumps({"type":"enc_manifest","nonce":self.nonce,"hidden_manifest":self.hidden_manifest})
+
+
 def file_begin(path: str, size: int, compression: str = "none") -> str:
     return dumps({"type":"file","path":path,"size":size,"compression":compression})
+
+def encrypted_file_begin(encrypted_file_info: bytes) -> str:
+    return dumps({"type":"enc_file","hidden_file":encrypted_file_info.hex()})
 
 FILE_EOF = dumps({"type":"file_eof"})
 
@@ -54,8 +61,7 @@ EOF = dumps({"type":"eof"})
 # The 'chain' is sha256(prev_chain || payload)
 CHUNK_HEADER = struct.Struct("!Q32s")
 
-def pack_chunk(seq: int, chained_checksum: ChainedChecksum, payload: bytes) -> bytes:
-    chain = chained_checksum.next_hash(payload)
+def pack_chunk(seq: int, chain: bytes, payload: bytes) -> bytes:
     return CHUNK_HEADER.pack(seq, chain) + payload
 
 def unpack_chunk(frame: bytes) -> Tuple[int, bytes, bytes]:

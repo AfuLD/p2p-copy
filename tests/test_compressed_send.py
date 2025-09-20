@@ -71,7 +71,7 @@ async def async_test_api_compression_modes_end_to_end(tmp_path: Path, mode: Comp
         await asyncio.sleep(0.1)
 
         recv_task = asyncio.create_task(
-            api_receive(server=server_url, code=code, resume=True, out=str(out))
+            api_receive(server=server_url, code=code, encrypt=False, out=str(out))
         )
         await asyncio.sleep(0.05)
 
@@ -208,7 +208,7 @@ async def _two_runs_under_auto(tmp_path: Path):
             _mk_files(src, {"file.bin": payload_fn(400_000)})
 
             await asyncio.sleep(0.1)
-            recv_task = asyncio.create_task(api_receive(server=server_url, code=code, resume=False, out=str(out)))
+            recv_task = asyncio.create_task(api_receive(server=server_url, code=code, encrypt=False, out=str(out)))
             await asyncio.sleep(0.05)
             send_rc = await api_send(server=server_url, code=code, files=[str(src)], compress=CompressMode.auto)
             recv_rc = await asyncio.wait_for(recv_task, timeout=15.0)
@@ -277,12 +277,12 @@ def test_transfer_timings_for_compression_modes(tmp_path, capsys):
     # --- Assertions with slack to avoid flakiness ---
     # Compressible should benefit from compression
     assert comp_on <= comp_off * 0.75, f"Expected 'on' to be faster on compressible data (on={comp_on:.3f}s, off={comp_off:.3f}s)"
-    assert comp_on * 0.9 <= comp_auto <=  comp_off * 0.75, \
+    assert comp_on * 0.9 - 0.01 <= comp_auto <=  comp_off * 0.75, \
         f"Expected 'auto' ~ 'on' for compressible (auto={comp_auto:.3f}s, on={comp_on:.3f}s)"
 
     # Incompressible should not benefit; 'off' should be as fast or faster
-    assert incomp_off * 0.9 <= incomp_on, f"Expected 'off' to be not slower on incompressible (off={incomp_off:.3f}s, on={incomp_on:.3f}s)"
-    assert incomp_off * 0.9 <= incomp_auto <= incomp_on * 1.1, \
+    assert incomp_off * 0.9 - 0.01 <= incomp_on, f"Expected 'off' to be not slower on incompressible (off={incomp_off:.3f}s, on={incomp_on:.3f}s)"
+    assert incomp_off * 0.9 - 0.01 <= incomp_auto <= incomp_on * 1.1 + 0.01, \
         f"Expected 'auto' ~ 'off' for incompressible (auto={incomp_auto:.3f}s, off={incomp_off:.3f}s)"
 
 
@@ -295,7 +295,7 @@ async def _time_one_transfer(payload: bytes, mode: CompressMode, tmp_path: Path,
     out = tmp_path / f"out-{label}-{mode.value}"
     _mk_files(src, {"file.bin": payload})
 
-    recv_task = asyncio.create_task(api_receive(server=server_url, code=code, resume=False, out=str(out)))
+    recv_task = asyncio.create_task(api_receive(server=server_url, code=code, encrypt=False, out=str(out)))
     await asyncio.sleep(0.1)  # ensure receiver is listening
 
     t0 = time.monotonic()

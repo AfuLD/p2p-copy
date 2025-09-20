@@ -8,7 +8,7 @@ p2p_copy/                  # Kernbibliothek
   api.py                   # High-level Python-API (send/receive)
   protocol.py              # Frame- und Nachrichtenformate
   compressor.py            # adaptive Kompression (auto|on|off; zstd bevorzugt)
-  crypto.py                # optionale E2E-Verschlüsselung (AES-256-GCM + KDF)
+  security.py              # Verschlüsselung, KDF (AES-256-GCM + Argon2)
   checksum.py              # Datei-Hash + Ketten-Checksummen
   resume.py                # Lücken-Ermittlung und -Übertragung
   io_utils.py              # asynchrones Dateihandling, Pfade, Iterator

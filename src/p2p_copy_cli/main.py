@@ -29,12 +29,12 @@ def send(
 def receive(
     server: str = typer.Argument(..., help="Relay WS(S) URL, e.g. wss://relay.example or ws://localhost:8765"),
     code: str = typer.Argument(..., help="Shared passphrase/code"),
-    resume: bool = typer.Option(True, help="Attempt to resume interrupted transfers"),
+    encrypt: bool = typer.Option(False, help="Enable end-to-end encryption (future)"),
     out: Optional[str] = typer.Option(".", "--out", "-o", help="Output directory"),
 ):
     """Receive files into the target directory (default: .)."""
     raise SystemExit(asyncio.run(api_receive(
-        code=code, server=server, resume=resume, out=out,
+        code=code, server=server, encrypt=encrypt, out=out,
     )))
 
 @app.command("run-relay-server")

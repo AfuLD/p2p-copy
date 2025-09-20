@@ -144,11 +144,11 @@ async def run_relay(*, host: str, port: int, use_tls: bool = False,
 # ----------------------------- API (shim) -----------------------------
 # We build on project modules where possible.
 
-from p2p_copy.checksum import ChainedChecksum
+from p2p_copy.security import ChainedChecksum, SecurityHandler
 from p2p_copy.io_utils import read_in_chunks
 from p2p_copy.io_utils import iter_manifest_entries, ensure_dir
 from p2p_copy.protocol import (
-    Hello, Manifest, ManifestEntry, code_to_hash_hex, EOF,
+    Hello, Manifest, ManifestEntry, EOF,
     file_begin, FILE_EOF, pack_chunk, unpack_chunk
 )
 
@@ -205,7 +205,8 @@ async def api_send(server: str, code: str, sources: Iterable[str], *,
     for abs_p, rel_p, size in resolved:
         entries.append(ManifestEntry(path=rel_p.as_posix(), size=size))
 
-    hello = Hello(type="hello", code_hash_hex=code_to_hash_hex(code), role="sender").to_json()
+    secure = SecurityHandler(code, False)
+    hello = Hello(type="hello", code_hash_hex=secure.code_hash, role="sender").to_json()
     manifest = Manifest(type="manifest", entries=entries).to_json()
 
     compression = "deflate" if ws_compression else None
@@ -236,7 +237,7 @@ async def api_send(server: str, code: str, sources: Iterable[str], *,
                         # Each chunk compressed as its own zstd frame; concatenation is valid
                         payload = cctx.compress(chunk)
                         comp_bytes += len(payload)
-                        frame: bytes = pack_chunk(seq, chained_checksum, payload)
+                        frame: bytes = pack_chunk(seq, chained_checksum.next_hash(payload), payload)
                         await last_send
                         last_send = ws.send(frame)
                         seq += 1
@@ -250,7 +251,7 @@ async def api_send(server: str, code: str, sources: Iterable[str], *,
                         else:
                             payload = cobj.compress(chunk) + cobj.flush(zlib.Z_SYNC_FLUSH)
                         comp_bytes += len(payload)
-                        frame: bytes = pack_chunk(seq, chained_checksum, payload)
+                        frame: bytes = pack_chunk(seq, chained_checksum.next_hash(payload), payload)
                         await last_send
                         last_send = ws.send(frame)
                         seq += 1
@@ -271,7 +272,8 @@ async def api_receive(server: str, code: str, *, out: Optional[str], ws_compress
     out_dir = Path(out or ".")
     ensure_dir(out_dir)
 
-    hello = Hello(type="hello", code_hash_hex=code_to_hash_hex(code), role="receiver").to_json()
+    secure = SecurityHandler(code, False)
+    hello = Hello(type="hello", code_hash_hex=secure.code_hash, role="sender").to_json()
 
     cur_fp: Optional[BinaryIO] = None
     cur_path: Optional[Path] = None

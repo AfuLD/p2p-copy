@@ -87,7 +87,7 @@ async def async_test_phase3_api_multi_file_ws(tmp_path: Path):
 
         # run receiver first to avoid race
         recv_task = asyncio.create_task(
-            api_receive(server=server_url, code=code, resume=True, out=str(out))
+            api_receive(server=server_url, code=code, encrypt=False, out=str(out))
         )
         await asyncio.sleep(0.05)
 
