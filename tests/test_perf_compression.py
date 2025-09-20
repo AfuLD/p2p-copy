@@ -206,7 +206,7 @@ async def api_send(server: str, code: str, sources: Iterable[str], *,
         entries.append(ManifestEntry(path=rel_p.as_posix(), size=size))
 
     secure = SecurityHandler(code, False)
-    hello = Hello(type="hello", code_hash_hex=secure.code_hash, role="sender").to_json()
+    hello = Hello(type="hello", code_hash_hex=secure.code_hash.hex(), role="sender").to_json()
     manifest = Manifest(type="manifest", entries=entries).to_json()
 
     compression = "deflate" if ws_compression else None
@@ -273,7 +273,7 @@ async def api_receive(server: str, code: str, *, out: Optional[str], ws_compress
     ensure_dir(out_dir)
 
     secure = SecurityHandler(code, False)
-    hello = Hello(type="hello", code_hash_hex=secure.code_hash, role="sender").to_json()
+    hello = Hello(type="hello", code_hash_hex=secure.code_hash.hex(), role="receiver").to_json()
 
     cur_fp: Optional[BinaryIO] = None
     cur_path: Optional[Path] = None

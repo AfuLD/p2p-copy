@@ -110,12 +110,12 @@ async def async_test_reject_same_role_sender(tmp_path: Path):
 
     # Niedrig-Level: websockets-Client direkt, um die Hello-Nachricht zu senden
     from websockets.asyncio.client import connect
-    from p2p_copy.protocol import code_to_hash_hex, dumps
+    from p2p_copy.protocol import  dumps
 
     code = "same-role"
     hello_sender = dumps({
         "type": "hello",
-        "code_hash_hex": code_to_hash_hex(code),
+        "code_hash_hex": code,
         "role": "sender",
         "protocol_version": 1
     })
