@@ -62,3 +62,4 @@
 * **Code-Logik:** Kompression entkoppelt von API, zentral in `compressor.py`.
 * **Dokumentation:** Erweiterung der Wire-Format-Notizen um Kompressionsangaben; Hinweise zu Performance und Einsatzgrenzen.  
 * **Async I/O:** Disk read und write in async event-loop eingebunden
+

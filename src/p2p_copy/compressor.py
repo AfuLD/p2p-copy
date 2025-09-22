@@ -2,7 +2,7 @@ from enum import Enum
 import zstandard as zstd
 from typing import Optional, BinaryIO
 
-from p2p_copy.io_utils import CHUNK_SIZE
+from .io_utils import CHUNK_SIZE
 
 
 class CompressMode(str, Enum):

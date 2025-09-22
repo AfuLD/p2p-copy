@@ -1,10 +1,10 @@
 import hashlib
 
-from argon2.low_level import hash_secret_raw, Type
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-
 
 def _get_argon2_hash(code: str, salt: bytes) -> bytes:
+    # security libs are needed if encryption is used
+    from argon2.low_level import hash_secret_raw, Type
+
     return hash_secret_raw(
         secret=code.encode(),
         salt=salt,
@@ -16,11 +16,14 @@ def _get_argon2_hash(code: str, salt: bytes) -> bytes:
     )
 
 class SecurityHandler:
-    def __init__(self, code: str, encrypt: bool, start_nonce: bytes = b""):
+    def __init__(self, code: str, encrypt: bool):
         self.encrypt = encrypt
         if self.encrypt:
+            # security libs are needed if encryption is used
+            from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
             self.code_hash = _get_argon2_hash(code, b"code_hash used for hello-match")
-            self.nonce_hasher = ChainedChecksum(start_nonce)
+            self.nonce_hasher = ChainedChecksum()
             self.cipher = AESGCM(_get_argon2_hash(code, b"cipher used for E2E-encryption"))
         else:
             self.code_hash = hashlib.sha256(code.encode()).digest()
@@ -34,6 +37,7 @@ class SecurityHandler:
         if self.encrypt:
             return self.cipher.decrypt(self.nonce_hasher.next_hash(), chunk, None)
         return chunk
+
 
 class ChainedChecksum:
     """

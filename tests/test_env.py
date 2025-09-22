@@ -7,7 +7,7 @@ from importlib import metadata as md
 
 # Defaults (used if we can't read pyproject.toml)
 DEFAULT_REQUIRED = {"typer": "0.12", "websockets": "12.0", "rich": "13.7"}
-DEFAULT_EXTRAS = {"zstandard": "0.22", "cryptography": "42.0"}
+DEFAULT_EXTRAS = {"zstandard": "0.22", "cryptography": "42.0", "argon2_cffi": "21.1"}
 
 try:  # Python 3.11+
     import tomllib  # type: ignore[attr-defined]

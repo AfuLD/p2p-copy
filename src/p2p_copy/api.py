@@ -31,12 +31,13 @@ async def send(server: str, code: str, files: Iterable[str],
         entries.append(ManifestEntry(path=rel_p.as_posix(), size=size))
 
     # Initialize security-handler
-    start_nonce = os.urandom(32)
-    secure = SecurityHandler(code, encrypt, start_nonce)
+    secure = SecurityHandler(code, encrypt)  # async init testen, erst await wenn für hello benötigt nach connect
 
     hello = Hello(type="hello", code_hash_hex=secure.code_hash.hex(), role="sender").to_json()
     manifest = Manifest(type="manifest", entries=entries).to_json()
     if encrypt:
+        start_nonce = os.urandom(32)
+        secure.nonce_hasher.next_hash(start_nonce)
         enc_manifest = secure.encrypt_chunk(manifest.encode())
         manifest = EncryptedManifest(type="enc_manifest", nonce=start_nonce.hex(), hidden_manifest=enc_manifest.hex()).to_json()
 

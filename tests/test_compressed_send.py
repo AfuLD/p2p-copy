@@ -299,8 +299,8 @@ async def _time_one_transfer(payload: bytes, mode: CompressMode, tmp_path: Path,
     await asyncio.sleep(0.1)  # ensure receiver is listening
 
     t0 = time.monotonic()
-    send_rc = await api_send(server=server_url, code=code, files=[str(src)], compress=mode)
-    recv_rc = await asyncio.wait_for(recv_task, timeout=6.0)
+    send_rc = await api_send(server=server_url, code=code, files=[str(src)], compress=mode, encrypt=False)
+    recv_rc = await asyncio.wait_for(recv_task, timeout=2.0)
     elapsed = time.monotonic() - t0
 
     assert send_rc == 0
