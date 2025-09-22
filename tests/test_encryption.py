@@ -298,7 +298,7 @@ def _mk_files(base: Path, layout: dict[str, bytes]) -> None:
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_bytes(content)
 
-def test_transfer_timings_for_compression_modes(tmp_path, capsys):
+def test_transfer_timings_for_compression_modes_encrypted(tmp_path, capsys):
     """
     Measure time to receive for compressible vs incompressible payloads across
     compression modes. We don't assert hard numbers—only sensible orderings:
