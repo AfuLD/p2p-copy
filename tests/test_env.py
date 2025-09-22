@@ -10,6 +10,7 @@ DEFAULT_REQUIRED = {"typer": "0.12", "websockets": "12.0", "rich": "13.7"}
 DEFAULT_EXTRAS = {"zstandard": "0.22", "cryptography": "42.0", "argon2_cffi": "21.1"}
 
 try:  # Python 3.11+
+    # noinspection PyCompatibility
     import tomllib  # type: ignore[attr-defined]
 except ModuleNotFoundError:  # Python 3.10 fallback (no extra deps)
     tomllib = None  # we'll fall back to the DEFAULT_* above

@@ -63,3 +63,11 @@
 * **Dokumentation:** Erweiterung der Wire-Format-Notizen um Kompressionsangaben; Hinweise zu Performance und Einsatzgrenzen.  
 * **Async I/O:** Disk read und write in async event-loop eingebunden
 
+
+## Phase 5 Sicherheit
+
+* **KDF:** argon2id implementiert zur Ableitung von hello und AES-GCM Key
+* **Verschlüsselung:** AES-GCM implementiert zum verschlüsseln
+* **Protokoll-Erweiterung:** Verschlüsselte Manifeste und Dateiinfo ergänzt
+* **Optionalität:** unverschlüsselte Verwendung unbeeinträchtigt von Erweiterungen
+* **Tests:** auf Funktionalität und Performanceauswirkungen geprüft
