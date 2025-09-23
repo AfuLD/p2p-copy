@@ -27,30 +27,90 @@ class Hello:
 class ManifestEntry:
     path: str
     size: int
-    sha256_hex: str | None = None
 
 @dataclass(frozen=True)
 class Manifest:
     type: Literal["manifest"]
     entries: Sequence[ManifestEntry]
+    resume: bool = False
     def to_json(self) -> str:
-        return dumps({"type":"manifest","entries":[asdict(e) for e in self.entries]})
+        return dumps({
+            "type": "manifest",
+            "resume": self.resume,
+            "entries": [asdict(e) for e in self.entries]
+        })
 
 @dataclass(frozen=True)
 class EncryptedManifest:
     type: Literal["enc_manifest"]
-    nonce: str # used for AES-GCM if encryption is enabled
+    nonce: str
     hidden_manifest: str
     def to_json(self) -> str:
-        return dumps({"type":"enc_manifest","nonce":self.nonce,"hidden_manifest":self.hidden_manifest})
+        return dumps({
+            "type": "enc_manifest",
+            "nonce": self.nonce,
+            "hidden_manifest": self.hidden_manifest
+        })
 
+# --- NEW: receiver resume manifest ----------------------------------
 
-def file_begin(path: str, size: int, compression: str = "none") -> str:
-    return dumps({"type":"file","path":path,"size":size,"compression":compression})
+@dataclass(frozen=True)
+class ReceiverManifestEntry:
+    """
+    The receiver reports what it already has for a given path:
+    - size: bytes present on disk
+    - chain_hex: chained checksum over the RAW BYTES up to 'size'
+    """
+    path: str
+    size: int
+    chain_hex: str
 
-def encrypted_file_begin(encrypted_file_info: bytes) -> str:
-    return dumps({"type":"enc_file","hidden_file":encrypted_file_info.hex()})
+@dataclass(frozen=True)
+class ReceiverManifest:
+    type: Literal["receiver_manifest"]
+    entries: Sequence[ReceiverManifestEntry]
+    def to_json(self) -> str:
+        return dumps({
+            "type": "receiver_manifest",
+            "entries": [asdict(e) for e in self.entries]
+        })
 
+@dataclass(frozen=True)
+class EncryptedReceiverManifest:
+    type: Literal["enc_receiver_manifest"]
+    hidden_manifest: str
+    def to_json(self) -> str:
+        return dumps({
+            "type": "enc_receiver_manifest",
+            "hidden_manifest": self.hidden_manifest
+        })
+
+# --- file control ----------------------------------------------------
+
+def file_begin(path: str, size: int, compression: str = "none", append_from: int | None = None) -> str:
+    """
+    Start of a file stream. If append_from is given, it indicates the sender will
+    only send bytes from [append_from .. size) and the receiver should open in 'ab'.
+    """
+    msg: Dict[str, Any] = {
+        "type": "file",
+        "path": path,
+        "size": int(size),
+        "compression": compression,
+    }
+    if append_from is not None:
+        msg["append_from"] = int(append_from)
+    return dumps(msg)
+
+def encrypted_file_begin(hidden_file_info: bytes) -> str:
+    """
+    Wrap a file header into an encrypted control frame.
+    """
+    payload = {
+        "type": "enc_file",
+        "hidden_file": hidden_file_info.hex()
+    }
+    return dumps(payload)
 
 READY = dumps({"type": "ready"})
 

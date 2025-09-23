@@ -102,9 +102,15 @@ async def _handle(ws: ServerConnection) -> None:
 
     # wait for one side to finish
     done, pending = await asyncio.wait({t1, t2}, return_when=asyncio.FIRST_COMPLETED)
-    await asyncio.sleep(0.1)
-    for t in pending:
-        t.cancel()
+
+    # give the slower side up to 1 second to finish
+    sleep_task = asyncio.create_task(asyncio.sleep(1.0))
+    done2, pending2 = await asyncio.wait(pending | {sleep_task}, return_when=asyncio.FIRST_COMPLETED)
+
+    # cancel whatever is still pending (excluding the sleep_task)
+    for t in pending2:
+        if t is not sleep_task:
+            t.cancel()
 
 async def run_relay(
         *, host: str, port: int,

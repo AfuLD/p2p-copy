@@ -92,7 +92,7 @@ async def _handle(ws: ServerConnection) -> None:
 
     # 4) Inform sender that pipe is ready
     await (ws if role == "sender" else other_ws).send(READY)
-
+    await asyncio.sleep(0.2)
     done, pending = await asyncio.wait({t1, t2}, return_when=asyncio.FIRST_COMPLETED)
     for t in pending:
         t.cancel()
@@ -305,7 +305,7 @@ def _mk_files(base: Path, layout: dict[str, bytes]) -> None:
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_bytes(content)
 
-def test_transfer_timings_for_compression_modes_encrypted(tmp_path, capsys):
+def test_transfer_timings_for_compression_modes_encrypted(tmp_path):
     """
     Measure time to receive for compressible vs incompressible payloads across
     compression modes. We don't assert hard numbers—only sensible orderings:

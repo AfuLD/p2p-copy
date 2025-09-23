@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-# API entry points (same import style as your existing tests)
+# API entry points
 from p2p_copy import send as api_send, receive as api_receive
 from p2p_copy.compressor import CompressMode
 
