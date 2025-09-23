@@ -1,7 +1,4 @@
-# tests/test_resume.py
-
 import asyncio
-import os
 import random
 import socket
 from pathlib import Path
