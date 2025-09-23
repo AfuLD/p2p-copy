@@ -1,7 +1,5 @@
 # p2p-copy CLI Usage (Phase 2)
 
-> **Status (Phase 2):** Es wird nur die **erste** angegebene Datei übertragen.  
-> `--encrypt`, `--compress`, `--resume` sind vorbereitet, aber funktional erst in späteren Phasen.
 
 ---
 

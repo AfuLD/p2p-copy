@@ -31,7 +31,7 @@ Client und Server verwenden die aktuelle `websockets`-AsyncIO-API (`websockets.a
 Alle Netzwerkinteraktionen sind `async` implementiert; lange andauernde Operationen blockieren den Event-Loop nicht. Probleme (falsche Reihenfolge der Nachrichten, doppelte Rollen, Verbindungsabbrüche) werden mit klaren Rückgabecodes und spezifischen Fehlern signalisiert und in der CLI in Prozess-Exitcodes abgebildet.
 
 **Packaging & Abhängigkeiten.**  
-Das Projekt nutzt in `pyproject.toml` beschriebene Pakete. Für die moderne API wird `websockets` in einer hinreichend neuen Version vorausgesetzt; Artefakte (`wheel`, `sdist`) werden bei Bedarf über python -m build erzeugt.
+Das Projekt nutzt in `pyproject.toml` beschriebene Pakete. Für die moderne API wird `websockets` in einer hinreichend neuen Version vorausgesetzt.
 
 **Erweiterbarkeit.**  
 Die Trennung von **API**, **CLI** und **Relay** sowie die klaren Schnittstellen erlauben inkrementelle Erweiterungen: mehrere Datein, Integritätsprüfungen (SHA-256/Ketten-Prüfsummen), optionale E2E-Verschlüsselung (AES-GCM), Verbindungswiederaufnahme und TLS-Betrieb
