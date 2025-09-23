@@ -7,6 +7,30 @@ from typing import Dict, Tuple, Optional
 
 from websockets.asyncio.server import serve, ServerConnection
 
+
+def use_production_logger():
+    # Custom logging for concise handshake errors
+    import logging
+    relay_logger = logging.getLogger("websockets.server")
+
+    def filter_handshake(record):
+        if "opening handshake failed" in record.getMessage():
+            record.exc_info = None  # Suppress traceback
+            record.exc_text = None  # Also clear formatted exception
+        return True  # Log the (modified) record
+
+    # Clear existing handlers/filters if needed (optional, for clean setup)
+    relay_logger.handlers.clear()
+    relay_logger.filters.clear()
+    relay_logger.addFilter(filter_handshake)
+
+    # Set a formatter for nicer output
+    handler = logging.StreamHandler()  # Defaults to stderr
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - relay - %(message)s')
+    handler.setFormatter(formatter)
+    relay_logger.addHandler(handler)
+    relay_logger.setLevel(logging.INFO)
+
 WAITING: Dict[str, Tuple[str, ServerConnection]] = {}  # code_hash -> (role, ws)
 LOCK = asyncio.Lock()
 
@@ -74,9 +98,6 @@ async def _handle(ws: ServerConnection) -> None:
     for t in pending:
         t.cancel()
 
-def run_sync(host: str, port: int, use_tls: bool, certfile: Optional[str], keyfile: Optional[str]) -> None:
-    asyncio.run(run_relay(host=host, port=port, use_tls=use_tls, certfile=certfile, keyfile=keyfile))
-
 async def run_relay(
         *, host: str, port: int,
         use_tls: bool = True,
@@ -91,6 +112,10 @@ async def run_relay(
         ssl_ctx.load_cert_chain(certfile, keyfile)
 
     scheme = "wss" if ssl_ctx else "ws"
-    print(f"Relay listening on {scheme}://{host}:{port}")
+    print(f"\nRelay listening on {scheme}://{host}:{port}")
+
+    if host != "localhost":
+        use_production_logger()
+
     async with serve(_handle, host, port, max_size=None, ssl=ssl_ctx):
         await asyncio.Future()  # run forever

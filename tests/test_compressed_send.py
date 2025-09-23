@@ -223,7 +223,7 @@ async def _two_runs_under_auto(tmp_path: Path):
             await asyncio.wait_for(relay_task, timeout=0.1)
 
 
-def test_transfer_timings_for_compression_modes(tmp_path, capsys):
+def test_transfer_timings_for_compression_modes(tmp_path):
     """
     Measure time to receive for compressible vs incompressible payloads across
     compression modes. We don't assert hard numbers—only sensible orderings:
