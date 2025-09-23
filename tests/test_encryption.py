@@ -19,6 +19,8 @@ from typing import Dict, Tuple, Optional
 
 from websockets.asyncio.server import serve, ServerConnection
 
+from p2p_copy.protocol import READY
+
 WAITING: Dict[str, Tuple[str, ServerConnection]] = {}  # code_hash -> (role, ws)
 LOCK = asyncio.Lock()
 
@@ -84,8 +86,13 @@ async def _handle(ws: ServerConnection) -> None:
         return
 
     # 3) Start bi-directional piping
+
     t1 = asyncio.create_task(_pipe(ws, peer))
     t2 = asyncio.create_task(_pipe(peer, ws))
+
+    # 4) Inform sender that pipe is ready
+    await (ws if role == "sender" else other_ws).send(READY)
+
     done, pending = await asyncio.wait({t1, t2}, return_when=asyncio.FIRST_COMPLETED)
     for t in pending:
         t.cancel()

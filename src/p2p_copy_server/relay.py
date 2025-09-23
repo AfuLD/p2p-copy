@@ -7,6 +7,8 @@ from typing import Dict, Tuple, Optional
 
 from websockets.asyncio.server import serve, ServerConnection
 
+from p2p_copy.protocol import READY
+
 
 def use_production_logger():
     # Custom logging for concise handshake errors
@@ -94,6 +96,11 @@ async def _handle(ws: ServerConnection) -> None:
     # 3) Start bi-directional piping
     t1 = asyncio.create_task(_pipe(ws, peer))
     t2 = asyncio.create_task(_pipe(peer, ws))
+
+    # 4) Inform sender that pipe is ready
+    await (ws if role == "sender" else other_ws).send(READY)
+
+    # wait for one side to finish
     done, pending = await asyncio.wait({t1, t2}, return_when=asyncio.FIRST_COMPLETED)
     for t in pending:
         t.cancel()

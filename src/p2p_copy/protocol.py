@@ -51,6 +51,9 @@ def file_begin(path: str, size: int, compression: str = "none") -> str:
 def encrypted_file_begin(encrypted_file_info: bytes) -> str:
     return dumps({"type":"enc_file","hidden_file":encrypted_file_info.hex()})
 
+
+READY = dumps({"type": "ready"})
+
 FILE_EOF = dumps({"type":"file_eof"})
 
 EOF = dumps({"type":"eof"})

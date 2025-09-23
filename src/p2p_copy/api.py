@@ -44,6 +44,19 @@ async def send(server: str, code: str, files: Iterable[str],
     async with connect(server, max_size=None, compression=None) as ws:  # Disable WebSocket compression
         # hello + manifest
         await ws.send(hello)
+
+        # Wait for ready from relay
+        try:
+            ready_frame = await asyncio.wait_for(ws.recv(), timeout=30.0)  # 30s Timeout
+            if isinstance(ready_frame, str):
+                ready = loads(ready_frame)
+                if ready.get("type") != "ready":
+                    print("[p2p_copy] send(): unexpected frame after hello"); return 3
+            else:
+                print("[p2p_copy] send(): expected text frame after hello"); return 3
+        except asyncio.TimeoutError:
+            print("[p2p_copy] send(): timeout waiting for ready"); return 3
+
         await ws.send(manifest)
 
         # Initialize compressor

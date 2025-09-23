@@ -73,3 +73,8 @@
 * **Tests:** auf Funktionalität und Performanceauswirkungen geprüft
 * **Server:** TLS-Zertifikate erstellt, Relay-Service erstellt
 * **WSS:** Übertragung via WSS ermöglicht über Server
+
+
+## Phase 6 – Resumieren & Robustheit
+
+* **READY:** Sender wartet auf Empfänger Verbindung
