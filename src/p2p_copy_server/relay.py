@@ -102,6 +102,7 @@ async def _handle(ws: ServerConnection) -> None:
 
     # wait for one side to finish
     done, pending = await asyncio.wait({t1, t2}, return_when=asyncio.FIRST_COMPLETED)
+    await asyncio.sleep(0.1)
     for t in pending:
         t.cancel()
 

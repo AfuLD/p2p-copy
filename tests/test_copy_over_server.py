@@ -5,6 +5,7 @@ import os
 import random
 import socket
 import time
+from asyncio import timeout
 from contextlib import closing
 from pathlib import Path
 
@@ -90,7 +91,7 @@ def transfer_timings_for_compression_modes(tmp_path: Path, encrypt: bool, ws_pro
         return results
 
 
-    results = asyncio.run(run_all(encrypt))
+    results = asyncio.run(asyncio.wait_for(run_all(encrypt), timeout=5))
 
     # Pretty-print timings into test output for debugging
     print(f"\nTiming results with {encrypt=}, {ws_protocol=} (seconds):")
