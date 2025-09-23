@@ -27,17 +27,6 @@ pip install --editable ".[dev,compression,security]"
 ```
 
 
-## Install from wheel or tar ball 
-Exact file name may change
-```bash
-pip install "p2p_copy-0.1.0a0-py3-none-any.whl[dev,compression,security]"
-```
-or
-```bash
-pip install "p2p_copy-0.1.0a0.tar.gz[dev,compression,security]"
-```
-
-
 ## Install from PyPI (once available)
 ```bash
 pip install "p2p-copy[compression,security]" 
@@ -60,18 +49,7 @@ pytest tests
 ```
 
 
-## Build (optional)
-Creates wheel and source tar ball
-```bash
-pip install build
-python -m build
-```
-
-
 # p2p-copy CLI Usage
-
-> **Status (Phase 2):** Only the **first** specified file is transferred.
-> `--encrypt`, `--compress`, `--resume` are prepared but will only be functional in later phases.
 
 ---
 
@@ -90,17 +68,17 @@ SERVER — Relay URL, e.g., ws://localhost:8765 (for production later wss://…:
 
 CODE — shared password/code for pairing
 
-FILE — one or more files (Phase 2: only the first is sent)
+FILE — one or more files or folders
 ```
 
 Options
 
 ```
---encrypt, -e — enable end-to-end encryption (reserved)
+--encrypt, — enable end-to-end encryption 
 
---compress {auto,on,off} — compression mode (reserved)
+--compress {auto,on,off} — compression mode 
 
---resume / --no-resume — resume transfer (reserved)
+--resume / --no-resume — resume transfer 
 
 --help — show help
 ```
@@ -111,10 +89,10 @@ Examples
 # Local, minimal
 p2p-copy send ws://localhost:8765 demo sample.txt
 
-# Multiple files (Phase 2: only sample.txt will be sent)
+# Multiple files
 p2p-copy send ws://localhost:8765 demo sample.txt notes.md
 
-# With (future) features
+# With features
 p2p-copy send ws://localhost:8765 demo sample.txt --encrypt --compress on --resume
 ```
 
@@ -139,7 +117,9 @@ Options
 ```
 --out, -o DIR — target directory (default: current directory)
 
---resume / --no-resume — resume (reserved)
+--encrypt, -e — enable end-to-end encryption 
+
+--resume / --no-resume — resume 
 
 --help — show help
 ```
@@ -218,9 +198,9 @@ Result: downloads/sample.txt contains the sent content.
 ## Notes
 
 ```
-For local tests use ws://localhost:8765; WSS on 443 will follow later (requires privileges and TLS).
+For local tests use ws://localhost:8765
 
-The receiver has no --encrypt/--compress flags; the sender decides (the protocol will negotiate that later).
+wss:// requires certificates, port 443 requires elevated privileges.
 
-chunk_size is internal and not configurable via the CLI.
+The receiver and sender need the same code and --encrypt usage.
 ```

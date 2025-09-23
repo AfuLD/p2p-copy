@@ -72,8 +72,8 @@ def transfer_timings_for_compression_modes(tmp_path: Path, encrypt: bool, ws_pro
         print("\ntest copy over server skipped because no server url was provided")
         return
 
-    # Size large enough to see a difference(~1 MiB)
-    SIZE = 1 * 1024 * 1024
+    # Size large enough to see a difference(~3 MiB)
+    SIZE = 3 * 1024 * 1024
 
     comp = _compressible_bytes(SIZE)
     incomp = _incompressible_bytes(SIZE)
