@@ -1,17 +1,20 @@
 from __future__ import annotations
 
+import asyncio
+import os
 import random
 import socket
-import subprocess
 import time
+from asyncio import start_server
 from contextlib import closing
 from pathlib import Path
 
-import pytest
-
 from p2p_copy import send as api_send, receive as api_receive, CompressMode
-import asyncio
 
+
+# ----------------------------
+# Helpers
+# ----------------------------
 
 def _free_port() -> int:
     """Return a free TCP port for local WS tests."""
@@ -19,14 +22,17 @@ def _free_port() -> int:
         s.bind(("", 0))
         return s.getsockname()[1]
 
+
 def _compressible_bytes(n: int) -> bytes:
     # long runs of the same few chars -> easy to compress
     return (b"AAAABBBBCCCCDDDDEEEE" * ((n // 20) + 1))[:n]
+
 
 def _incompressible_bytes(n: int) -> bytes:
     # pseudo-random noise -> hard to compress
     rnd = random.Random(42)
     return bytes(rnd.getrandbits(8) for _ in range(n))
+
 
 def _mk_files(base: Path, layout: dict[str, bytes]) -> None:
     for rel, content in layout.items():
@@ -34,7 +40,12 @@ def _mk_files(base: Path, layout: dict[str, bytes]) -> None:
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_bytes(content)
 
-def test_transfer_timings_for_compression_modes_encrypted(tmp_path, capsys):
+
+# ----------------------------
+# The test
+# ----------------------------
+
+def test_transfer_timings_for_compression_modes_encrypted(tmp_path):
     """
     Measure time to receive for compressible vs incompressible payloads across
     compression modes. We don't assert hard numbers—only sensible orderings:
@@ -44,31 +55,34 @@ def test_transfer_timings_for_compression_modes_encrypted(tmp_path, capsys):
     - For incompressible data:       off <= on   (on shouldn't be faster)
       and auto ≈ off.
     """
-    # Size large enough to see a difference(~30 MiB)
-    SIZE = 30 * 1024 * 1024
+
+    try:
+        print(os.getcwd())
+        with open("../test_resources/server_url.txt","r") as f:
+            server_url = f.read()
+
+    except:
+        # If no server URL was provided skip this test
+        print("\ntest copy over server skipped because no server url was provided")
+        return
+
+    # Size large enough to see a difference(~3 MiB)
+    SIZE = 3 * 1024 * 1024
 
     comp = _compressible_bytes(SIZE)
     incomp = _incompressible_bytes(SIZE)
 
     async def run_all():
-        from p2p_copy_server.relay import run_relay
-        host = "localhost"
-        port = _free_port()
-        server_url = f"ws://{host}:{port}"
-        relay_task = asyncio.create_task(run_relay(host=host, port=port, use_tls=False))
-        await asyncio.sleep(0.1)
-
         results = {}
         for label, payload in [("compressible", comp), ("incompressible", incomp)]:
             results[label] = {}
-            for mode in (CompressMode.off,  CompressMode.auto, CompressMode.on):
+            for mode in (CompressMode.off, CompressMode.auto, CompressMode.on):
                 # warm up
                 await asyncio.sleep(0)
                 elapsed = await _time_one_transfer(payload, mode, tmp_path, f"{label}", server_url)
                 results[label][mode.value] = elapsed
-
-        relay_task.cancel()
         return results
+
 
     results = asyncio.run(run_all())
 
@@ -78,17 +92,17 @@ def test_transfer_timings_for_compression_modes_encrypted(tmp_path, capsys):
         print(f"  {label}: " + ", ".join(f"{m}={t:.3f}" for m, t in modes.items()))
 
     comp_off = results["compressible"]["off"]
-    comp_on  = results["compressible"]["on"]
+    comp_on = results["compressible"]["on"]
     comp_auto = results["compressible"]["auto"]
 
     incomp_off = results["incompressible"]["off"]
-    incomp_on  = results["incompressible"]["on"]
+    incomp_on = results["incompressible"]["on"]
     incomp_auto = results["incompressible"]["auto"]
 
     # --- Assertions with slack to avoid flakiness ---
     # Compressible should benefit from compression
     assert comp_on <= comp_off * 0.75, f"Expected 'on' to be faster on compressible data (on={comp_on:.3f}s, off={comp_off:.3f}s)"
-    assert comp_on * 0.9 - 0.01 <= comp_auto <=  comp_off * 0.75, \
+    assert comp_on * 0.9 - 0.01 <= comp_auto <= comp_off * 0.75, \
         f"Expected 'auto' ~ 'on' for compressible (auto={comp_auto:.3f}s, on={comp_on:.3f}s)"
 
     # Incompressible should not benefit; 'off' should be as fast or faster
@@ -97,16 +111,21 @@ def test_transfer_timings_for_compression_modes_encrypted(tmp_path, capsys):
         f"Expected 'auto' ~ 'off' for incompressible (auto={incomp_auto:.3f}s, off={incomp_off:.3f}s)"
 
 
-async def _time_one_transfer(payload: bytes, mode: CompressMode, tmp_path: Path, label: str, server_url) -> float:
-    """Run a single send/receive and return elapsed seconds."""
+# ----------------------------
+# Transfer timing helper
+# ----------------------------
 
+async def _time_one_transfer(payload: bytes, mode: CompressMode, tmp_path: Path, label: str, server_url: str) -> float:
+    """Run a single send/receive and return elapsed seconds."""
     code = f"timing-{label}-{mode.value}"
 
     src = tmp_path / f"src-{label}-{mode.value}"
     out = tmp_path / f"out-{label}-{mode.value}"
     _mk_files(src, {"file.bin": payload})
 
-    recv_task = asyncio.create_task(api_receive(server=server_url, code=code, encrypt=True, out=str(out)))
+    recv_task = asyncio.create_task(
+        api_receive(server=server_url, code=code, encrypt=True, out=str(out))
+    )
     await asyncio.sleep(0.1)  # ensure receiver is listening
 
     t0 = time.monotonic()

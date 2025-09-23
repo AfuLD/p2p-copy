@@ -5,8 +5,12 @@ from typing import List, Optional
 
 import typer
 from p2p_copy import send as api_send, receive as api_receive
-from p2p_copy.compressor import CompressMode
+from p2p_copy import CompressMode
 from p2p_copy_server import run_relay
+
+import sys
+if hasattr(sys.stdout, "reconfigure"): # on Python >= 3.7
+    sys.stdout.reconfigure(line_buffering=True)
 
 app = typer.Typer(add_completion=False, help="p2p-copy — chunked file transfer over WSS.")
 
