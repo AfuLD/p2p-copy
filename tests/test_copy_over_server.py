@@ -41,10 +41,18 @@ def _mk_files(base: Path, layout: dict[str, bytes]) -> None:
 
 
 # ----------------------------
-# The test
+# The tests
 # ----------------------------
 
-def test_transfer_timings_for_compression_modes_encrypted(tmp_path):
+def test_server_transfer_timings_for_compression_modes_encrypted_ws(tmp_path):
+    transfer_timings_for_compression_modes(tmp_path, encrypt=True, ws_protocol="ws://")
+
+
+def test_server_transfer_timings_for_compression_modes_wss(tmp_path):
+    transfer_timings_for_compression_modes(tmp_path, encrypt=False, ws_protocol="wss://")
+
+
+def transfer_timings_for_compression_modes(tmp_path: Path, encrypt: bool, ws_protocol: str):
     """
     Measure time to receive for compressible vs incompressible payloads across
     compression modes. We don't assert hard numbers—only sensible orderings:
@@ -58,35 +66,34 @@ def test_transfer_timings_for_compression_modes_encrypted(tmp_path):
     try:
         print(os.getcwd())
         with open("../test_resources/server_url.txt","r") as f:
-            server_url = f.read()
-
+            server_url = ws_protocol + f.read()
     except:
         # If no server URL was provided skip this test
         print("\ntest copy over server skipped because no server url was provided")
         return
 
-    # Size large enough to see a difference(~3 MiB)
-    SIZE = 3 * 1024 * 1024
+    # Size large enough to see a difference(~1 MiB)
+    SIZE = 1 * 1024 * 1024
 
     comp = _compressible_bytes(SIZE)
     incomp = _incompressible_bytes(SIZE)
 
-    async def run_all():
+    async def run_all(encrypt: bool):
         results = {}
         for label, payload in [("compressible", comp), ("incompressible", incomp)]:
             results[label] = {}
             for mode in (CompressMode.off, CompressMode.auto, CompressMode.on):
                 # warm up
                 await asyncio.sleep(0)
-                elapsed = await _time_one_transfer(payload, mode, tmp_path, f"{label}", server_url)
+                elapsed = await _time_one_transfer(payload, mode, tmp_path, f"{label}", server_url, encrypt)
                 results[label][mode.value] = elapsed
         return results
 
 
-    results = asyncio.run(run_all())
+    results = asyncio.run(run_all(encrypt))
 
     # Pretty-print timings into test output for debugging
-    print("\nTiming results with encryption (seconds):")
+    print(f"\nTiming results with {encrypt=}, {ws_protocol=} (seconds):")
     for label, modes in results.items():
         print(f"  {label}: " + ", ".join(f"{m}={t:.3f}" for m, t in modes.items()))
 
@@ -114,7 +121,7 @@ def test_transfer_timings_for_compression_modes_encrypted(tmp_path):
 # Transfer timing helper
 # ----------------------------
 
-async def _time_one_transfer(payload: bytes, mode: CompressMode, tmp_path: Path, label: str, server_url: str) -> float:
+async def _time_one_transfer(payload: bytes, mode: CompressMode, tmp_path: Path, label: str, server_url: str, encrypt: bool) -> float:
     """Run a single send/receive and return elapsed seconds."""
     code = f"timing-{label}-{mode.value}"
 
@@ -123,12 +130,12 @@ async def _time_one_transfer(payload: bytes, mode: CompressMode, tmp_path: Path,
     _mk_files(src, {"file.bin": payload})
 
     recv_task = asyncio.create_task(
-        api_receive(server=server_url, code=code, encrypt=True, out=str(out))
+        api_receive(server=server_url, code=code, encrypt=encrypt, out=str(out))
     )
     await asyncio.sleep(0.1)  # ensure receiver is listening
 
     t0 = time.monotonic()
-    send_rc = await api_send(server=server_url, code=code, files=[str(src)], compress=mode, encrypt=True)
+    send_rc = await api_send(server=server_url, code=code, files=[str(src)], compress=mode, encrypt=encrypt)
     recv_rc = await asyncio.wait_for(recv_task, timeout=2.0)
     elapsed = time.monotonic() - t0
 
