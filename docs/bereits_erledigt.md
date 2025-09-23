@@ -71,3 +71,5 @@
 * **Protokoll-Erweiterung:** Verschlüsselte Manifeste und Dateiinfo ergänzt
 * **Optionalität:** unverschlüsselte Verwendung unbeeinträchtigt von Erweiterungen
 * **Tests:** auf Funktionalität und Performanceauswirkungen geprüft
+* **Server:** TLS-Zertifikate erstellt, Relay-Service erstellt
+* **WSS:** Übertragung via WSS ermöglicht über Server
