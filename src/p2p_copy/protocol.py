@@ -87,7 +87,7 @@ class EncryptedReceiverManifest:
 
 # --- file control ----------------------------------------------------
 
-def file_begin(path: str, size: int, compression: str = "none", append_from: int | None = None) -> str:
+def file_begin(path: str, size: int, compression: str = "none", append_from: int = 0) -> str:
     """
     Start of a file stream. If append_from is given, it indicates the sender will
     only send bytes from [append_from .. size) and the receiver should open in 'ab'.
@@ -97,9 +97,9 @@ def file_begin(path: str, size: int, compression: str = "none", append_from: int
         "path": path,
         "size": int(size),
         "compression": compression,
+        "append_from": append_from
     }
-    if append_from is not None:
-        msg["append_from"] = int(append_from)
+
     return dumps(msg)
 
 def encrypted_file_begin(hidden_file_info: bytes) -> str:

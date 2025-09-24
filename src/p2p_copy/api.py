@@ -214,7 +214,6 @@ async def receive(server: str, code: str,
 
     # Receiver state
     cur_fp: Optional[BinaryIO] = None
-    cur_path: Optional[Path] = None
     cur_expected_size: Optional[int] = None
     cur_seq_expected = 0
     bytes_written = 0
@@ -348,10 +347,9 @@ async def receive(server: str, code: str,
 
                 try:
                     rel_path = o["path"]
-                    total_size = int(o["size"])
+                    total_size: int = o.get("size")
                     compression = o.get("compression", "none")
-                    append_from = o.get("append_from")
-                    append_from = int(append_from) if append_from is not None else None
+                    append_from: int = o.get("append_from")
                 except Exception:
                     print("[p2p_copy] receive(): bad file header", o)
                     return return_with_error_code()
@@ -361,25 +359,23 @@ async def receive(server: str, code: str,
 
                 open_mode = "wb"
                 expected_remaining = total_size
-                if append_from is not None and dest.exists() and dest.is_file():
+                if append_from > 0 and dest.exists() and dest.is_file():
                     local_size = dest.stat().st_size
                     if 0 <= append_from <= total_size and local_size == append_from:
                         open_mode = "ab"
                         expected_remaining = total_size - append_from
                     else:
                         # size mismatch -> overwrite from scratch
-                        append_from = None
                         expected_remaining = total_size
 
+                # noinspection PyTypeChecker
                 cur_fp = dest.open(open_mode)
-                cur_path = dest
                 cur_expected_size = expected_remaining
                 cur_seq_expected = 0
                 bytes_written = 0
                 compressor.set_decompression(compression)
                 chained_checksum = ChainedChecksum()
                 continue
-
 
             if t == "file_eof":
                 if cur_fp is None:
