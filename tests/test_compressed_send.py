@@ -252,7 +252,7 @@ def test_transfer_timings_for_compression_modes(tmp_path):
             results[label] = {}
             for mode in (CompressMode.off,  CompressMode.auto, CompressMode.on):
                 # warm up
-                await asyncio.sleep(0)
+                await asyncio.sleep(0.01)
                 elapsed = await _time_one_transfer(payload, mode, tmp_path, f"{label}", server_url)
                 results[label][mode.value] = elapsed
 

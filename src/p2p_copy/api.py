@@ -107,7 +107,10 @@ async def send(server: str, code: str, files: Iterable[str],
         # --- wait for receiver resume manifest (optionally encrypted) ----
         resume_map: Dict[str, Tuple[int, bytes]] = {}
         if resume:
-            raw = await asyncio.wait_for(ws.recv(), timeout=30)
+            try:
+                raw = await asyncio.wait_for(ws.recv(), timeout=30)
+            except asyncio.TimeoutError:
+                print("[p2p_copy] send(): timeout waiting for receiver_manifest"); return 3
             if isinstance(raw, str):
                 o = loads(raw)
                 t = o.get("type")

@@ -215,12 +215,12 @@ async def async_test_api_encrypt_flag_mismatch_fails(tmp_path: Path):
     send_task = asyncio.create_task(api_send(files=[str(src)], code=code, server=server_url, encrypt=False))
 
     try:
-        failed_to_send = (await asyncio.wait_for(send_task, timeout=2.0)) != 0
+        failed_to_send = (await asyncio.wait_for(send_task, timeout=1.0)) != 0
     except asyncio.TimeoutError:
         failed_to_send = True
 
     try:
-        failed_to_receive = (await asyncio.wait_for(recv_task, timeout=2.0)) != 0
+        failed_to_receive = (await asyncio.wait_for(recv_task, timeout=0.1)) != 0
     except asyncio.TimeoutError:
           failed_to_receive = True
 
