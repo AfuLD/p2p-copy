@@ -189,10 +189,10 @@ async def async_test_api_encrypt_with_compression_ws(tmp_path: Path, mode: str):
     assert out_text == in_text
 
 
-def test_api_encrypt_flag_mismatch_fails_fast(tmp_path: Path):
-    asyncio.run(async_test_api_encrypt_flag_mismatch_fails_fast(tmp_path))
+def test_api_encrypt_flag_mismatch_fails(tmp_path: Path):
+    asyncio.run(async_test_api_encrypt_flag_mismatch_fails(tmp_path))
 
-async def async_test_api_encrypt_flag_mismatch_fails_fast(tmp_path: Path):
+async def async_test_api_encrypt_flag_mismatch_fails(tmp_path: Path):
     """
     Sender uses encrypt=True while receiver uses encrypt=False (or vice versa).
     Expect a failure signal (non-zero return code or pairing failure).
@@ -210,22 +210,22 @@ async def async_test_api_encrypt_flag_mismatch_fails_fast(tmp_path: Path):
     src.write_text(_build_payload("MISMATCH_TEST", encrypt=True, compress=CompressMode.auto), encoding="utf-8")
     out_dir = tmp_path / "out"
 
-    recv_task = asyncio.create_task(
-        api_receive(code=code, server=server_url, encrypt=True, out=str(out_dir))
-    )
-    await asyncio.sleep(0.05)
-    send_rc = await api_send(files=[str(src)], code=code, server=server_url, encrypt=False)
+    recv_task = asyncio.create_task(api_receive(code=code, server=server_url, encrypt=True, out=str(out_dir)))
+    await asyncio.sleep(0.1)
+    send_task = asyncio.create_task(api_send(files=[str(src)], code=code, server=server_url, encrypt=False))
 
-    failed = (send_rc != 0)
-    if not failed:
-        try:
-            recv_rc = await asyncio.wait_for(recv_task, timeout=2.0)
-            failed = (recv_rc != 0)
-        except asyncio.TimeoutError:
-            failed = True  # acceptable: pairing failed or hung due to mismatch
+    try:
+        failed_to_send = (await asyncio.wait_for(send_task, timeout=2.0)) != 0
+    except asyncio.TimeoutError:
+        failed_to_send = True
+
+    try:
+        failed_to_receive = (await asyncio.wait_for(recv_task, timeout=2.0)) != 0
+    except asyncio.TimeoutError:
+          failed_to_receive = True
 
     relay_task.cancel()
-    assert failed, "Encryption flag mismatch should not succeed"
+    assert (failed_to_send and failed_to_receive), "Encryption flag mismatch should not succeed"
 
 
 # ---------- CLI TESTS ----------

@@ -50,7 +50,9 @@ async def resume(tmp_path: Path, encrypt: bool, compress: CompressMode):
     # --- Case 1: no file present yet ---
     t_recv = asyncio.create_task(api_receive(server_url, code, encrypt=encrypt, out=str(recv_dir)))
     t_send = asyncio.create_task(api_send(server_url, code, [str(src_file)], encrypt=encrypt, resume=True, compress=compress))
-    await asyncio.gather(t_recv, t_send)
+
+    # this will raise an Error if any return code is not 0
+    assert not any(await asyncio.gather(t_recv, t_send))
 
     dest_file = recv_dir / "src.bin"
     assert dest_file.read_bytes() == data
@@ -58,7 +60,7 @@ async def resume(tmp_path: Path, encrypt: bool, compress: CompressMode):
     # --- Case 2: receiver already has full file -> sender skips ---
     t_recv = asyncio.create_task(api_receive(server_url, code, encrypt=encrypt, out=str(recv_dir)))
     t_send = asyncio.create_task(api_send(server_url, code, [str(src_file)], encrypt=encrypt, resume=True, compress=compress))
-    await asyncio.gather(t_recv, t_send)
+    assert not any(await asyncio.gather(t_recv, t_send))
     # File should be unchanged
     assert dest_file.read_bytes() == data
 
@@ -67,7 +69,7 @@ async def resume(tmp_path: Path, encrypt: bool, compress: CompressMode):
     dest_file.write_bytes(data[:half])  # truncate to half
     t_recv = asyncio.create_task(api_receive(server_url, code, encrypt=encrypt, out=str(recv_dir)))
     t_send = asyncio.create_task(api_send(server_url, code, [str(src_file)], encrypt=encrypt, resume=True, compress=compress))
-    await asyncio.gather(t_recv, t_send)
+    assert not any(await asyncio.gather(t_recv, t_send))
     assert dest_file.read_bytes() == data
 
     # --- Case 4: receiver has corrupted prefix -> sender overwrites full file ---
@@ -76,7 +78,7 @@ async def resume(tmp_path: Path, encrypt: bool, compress: CompressMode):
     dest_file.write_bytes(corrupted)
     t_recv = asyncio.create_task(api_receive(server_url, code, encrypt=encrypt, out=str(recv_dir)))
     t_send = asyncio.create_task(api_send(server_url, code, [str(src_file)], encrypt=encrypt, resume=True, compress=compress))
-    await asyncio.gather(t_recv, t_send)
+    assert not any(await asyncio.gather(t_recv, t_send))
     assert dest_file.read_bytes() == data
 
     relay_task.cancel()

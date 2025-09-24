@@ -226,17 +226,10 @@ async def receive(server: str, code: str,
     # For resume: we may keep a quick map (not strictly needed, but handy for diagnostics)
     resume_known: Dict[str, Tuple[int, bytes]] = {}
 
-    def close_current() -> None:
-        nonlocal cur_fp, cur_path, cur_expected_size, cur_seq_expected, bytes_written, chained_checksum
+    def return_with_error_code():
         if cur_fp is not None:
             cur_fp.close()
-        cur_fp = None
-        cur_path = None
-        cur_expected_size = None
-        cur_seq_expected = 0
-        bytes_written = 0
-        chained_checksum = ChainedChecksum()
-        # compressor.dctx is kept; it is reinitialized per file header via set_decompression()
+        return 4
 
     async with connect(server, max_size=None, compression=None) as ws:
         await ws.send(hello)
@@ -248,17 +241,17 @@ async def receive(server: str, code: str,
             if isinstance(frame, (bytes, bytearray)):
                 if cur_fp is None:
                     # Unexpected binary data
-                    return 4
+                    return return_with_error_code()
                 seq, chain, payload = unpack_chunk(frame)
                 if seq != cur_seq_expected:
                     print("[p2p_copy] receive(): sequence mismatch", seq, "!=", cur_seq_expected)
-                    return 4
+                    return return_with_error_code()
 
                 # Decrypt (if enabled) then verify chain over the DECRYPTED (still compressed) chunk
                 raw_payload = secure.decrypt_chunk(payload) if encrypt else payload
                 if chained_checksum.next_hash(raw_payload) != chain:
                     print("[p2p_copy] receive(): chained checksum mismatch")
-                    return 4
+                    return return_with_error_code()
 
                 # Decompress (if enabled) to raw bytes, then write
                 chunk = compressor.decompress(raw_payload)
@@ -271,7 +264,7 @@ async def receive(server: str, code: str,
             # --- text control frames -------------------------------------
             if not isinstance(frame, str):
                 print("[p2p_copy] receive(): unknown frame type")
-                return 4
+                return return_with_error_code()
 
             o = loads(frame)
             t = o.get("type")
@@ -292,7 +285,7 @@ async def receive(server: str, code: str,
                     t = o.get("type")
                 except Exception as e:
                     print("[p2p_copy] receive(): failed to decrypt manifest", e)
-                    return 4
+                    return return_with_error_code()
 
             # plain manifest from sender
             if t == "manifest":
@@ -347,13 +340,13 @@ async def receive(server: str, code: str,
                     t = o.get("type")
                 except Exception as e:
                     print("[p2p_copy] receive(): failed to decrypt file info", e)
-                    return 4
+                    return return_with_error_code()
 
             if t == "file":
                 # Close any previous file just in case
                 if cur_fp is not None:
                     print("[p2p_copy] receive(): got new file while previous still open")
-                    return 4
+                    return return_with_error_code()
 
                 try:
                     rel_path = o["path"]
@@ -363,7 +356,7 @@ async def receive(server: str, code: str,
                     append_from = int(append_from) if append_from is not None else None
                 except Exception:
                     print("[p2p_copy] receive(): bad file header", o)
-                    return 4
+                    return return_with_error_code()
 
                 dest = (out_dir / Path(rel_path)).resolve()
                 ensure_dir(dest.parent)
@@ -385,22 +378,22 @@ async def receive(server: str, code: str,
                 cur_expected_size = expected_remaining
                 cur_seq_expected = 0
                 bytes_written = 0
-                chained_checksum = ChainedChecksum()
                 compressor.set_decompression(compression)
+                chained_checksum = ChainedChecksum()
                 continue
+
 
             if t == "file_eof":
                 if cur_fp is None:
                     print("[p2p_copy] receive(): got file_eof without open file")
-                    return 4
-
+                    return return_with_error_code()
                 # Validate expected size
-                if cur_expected_size is not None and bytes_written != cur_expected_size:
+                elif cur_expected_size is not None and bytes_written != cur_expected_size:
                     print("[p2p_copy] receive(): size mismatch", bytes_written, "!=", cur_expected_size)
-                    close_current()
-                    return 4
-
-                close_current()
+                    return return_with_error_code()
+                else:
+                    cur_fp.close()
+                    cur_fp = None
                 continue
 
             if t == "eof":
@@ -408,11 +401,10 @@ async def receive(server: str, code: str,
 
             # Any other text control we don't understand
             print("[p2p_copy] receive(): unexpected control", o)
-            return 4
+            return return_with_error_code()
 
     # ensure no file left open
     if cur_fp is not None:
-        close_current()
         print("[p2p_copy] receive(): stream ended while file open")
-        return 4
+        return return_with_error_code()
     return 0
