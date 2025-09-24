@@ -40,7 +40,7 @@ async def resume(tmp_path: Path, encrypt: bool, compress: CompressMode):
 
     # Create source file
     src_file = tmp_path / "src.bin"
-    data = _make_bytes(2200_000)  # ~200 KB
+    data = _make_bytes(2200_007)  # ~2200 KB
     src_file.write_bytes(data)
 
     # Receiver dir

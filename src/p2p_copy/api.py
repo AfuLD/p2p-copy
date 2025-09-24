@@ -133,7 +133,7 @@ async def send(server: str, code: str, files: Iterable[str],
 
         # --- transfer each file ------------------------------------------
         for abs_p, rel_p, size in resolved:
-            append_from: Optional[int] = None
+            append_from = 0
 
             # Resume decision (optional)
             if resume:
@@ -152,9 +152,7 @@ async def send(server: str, code: str, files: Iterable[str],
             # Open file and seek if appending remainder only
             with abs_p.open("rb") as fp:
                 if append_from:
-                    await asyncio.to_thread(fp.seek, append_from)
-                else:
-                    await asyncio.to_thread(fp.seek, 0)
+                    await asyncio.to_thread(fp.seek, append_from, 0)
 
                 # Initialize per-transfer chain and sequence
                 chained_checksum = ChainedChecksum()
