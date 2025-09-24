@@ -19,9 +19,9 @@ def send(
     server: str = typer.Argument(..., help="Relay WS(S) URL, e.g. wss://relay.example or ws://localhost:8765"),
     code: str = typer.Argument(..., help="Shared passphrase/code"),
     files: List[str] = typer.Argument(..., help="Files and/or directories to send"),
-    encrypt: bool = typer.Option(False, help="Enable end-to-end encryption (future)"),
-    compress: CompressMode = typer.Option(CompressMode.auto, help="Compression mode"),
-    resume: bool = typer.Option(True, help="Attempt to resume interrupted transfers"),
+    encrypt: bool = typer.Option(False, help="Enable end-to-end encryption"),
+    compress: CompressMode = typer.Option(CompressMode.auto, help="Enable Compression"),
+    resume: bool = typer.Option(False, help="resume previous copy progress, skips existing and completes partial files"),
 ):
     """Send one or more files/directories."""
     raise SystemExit(asyncio.run(api_send(
@@ -33,23 +33,23 @@ def send(
 def receive(
     server: str = typer.Argument(..., help="Relay WS(S) URL, e.g. wss://relay.example or ws://localhost:8765"),
     code: str = typer.Argument(..., help="Shared passphrase/code"),
-    encrypt: bool = typer.Option(False, help="Enable end-to-end encryption (future)"),
+    encrypt: bool = typer.Option(False, help="Enable end-to-end encryption"),
     out: Optional[str] = typer.Option(".", "--out", "-o", help="Output directory"),
 ):
-    """Receive files into the target directory (default: .)."""
+    """Receive files into the target directory"""
     raise SystemExit(asyncio.run(api_receive(
         code=code, server=server, encrypt=encrypt, out=out,
     )))
 
 @app.command("run-relay-server")
 def run_relay_server(
-    server_host: str = typer.Argument("0.0.0.0", help="Host to bind"),
-    server_port: int = typer.Argument(8765, help="Port to bind"),
+    server_host: str = typer.Argument(..., help="Host to bind"),
+    server_port: int = typer.Argument(..., help="Port to bind"),
     tls: bool = typer.Option(True, "--tls/--no-tls", help="Enable TLS (default: on)"),
     certfile: Optional[str] = typer.Option(None, help="TLS cert file (PEM)"),
     keyfile: Optional[str] = typer.Option(None, help="TLS key file (PEM)"),
 ):
-    """Run the relay server (glue-only)."""
+    """Run the relay server"""
     try:
         asyncio.run(run_relay(
             host=server_host,

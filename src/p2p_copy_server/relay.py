@@ -110,12 +110,11 @@ async def _handle(ws: ServerConnection) -> None:
         if t is not sleep_task:
             t.cancel()
 
-async def run_relay(
-        *, host: str, port: int,
+async def run_relay(host: str, port: int,
         use_tls: bool = True,
         certfile: Optional[str] = None,
-        keyfile: Optional[str] = None,
-) -> None:
+        keyfile: Optional[str] = None) -> None:
+
     ssl_ctx = None
     if use_tls:
         if not certfile or not keyfile:

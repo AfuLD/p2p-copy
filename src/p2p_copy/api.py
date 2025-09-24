@@ -54,8 +54,8 @@ def _by_path(entries: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
 
 async def send(server: str, code: str, files: List[str],
                encrypt: bool = False,
-               resume: bool = False,
-               compress: CompressMode = CompressMode.auto) -> int:
+               compress: CompressMode = CompressMode.auto,
+               resume: bool = False) -> int:
     """
     Connects to server and sends files/directories.
     - If 'resume' is True, waits for a receiver manifest and decides skip/append/overwrite existing files.
