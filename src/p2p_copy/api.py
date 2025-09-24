@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import os
 from pathlib import Path
-from typing import Iterable, Optional, List, Tuple, BinaryIO, Dict, Any
+from typing import Optional, List, Tuple, BinaryIO, Dict, Any
 
 from websockets.asyncio.client import connect
 
@@ -52,17 +52,21 @@ def _by_path(entries: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
 
 # ----------------------------- sender --------------------------------
 
-async def send(server: str, code: str, files: Iterable[str],
+async def send(server: str, code: str, files: List[str],
                encrypt: bool = False,
                resume: bool = False,
                compress: CompressMode = CompressMode.auto) -> int:
     """
     Connects to server and sends files/directories.
-    - If 'resume' is True, waits for a receiver manifest and decides skip/append/overwrite.
-    - If 'encrypt' is True, encrypts control frames (manifest, file headers) and chunks.
+    - If 'resume' is True, waits for a receiver manifest and decides skip/append/overwrite existing files.
+    - If 'encrypt' is True, encrypts files and file metadata.
     """
+
     # Build manifest entries from given file list
     resolved: List[Tuple[Path, Path, int]] = list(iter_manifest_entries(files))
+    if not resolved:
+        print("[p2p_copy] send(): no legal files where passed"); return 3
+
     entries: List[ManifestEntry] = [
         ManifestEntry(path=rel.as_posix(), size=size) for (_, rel, size) in resolved
     ]
@@ -203,8 +207,8 @@ async def receive(server: str, code: str,
                   encrypt: bool = False,
                   out: Optional[str] = None) -> int:
     """
-    Receives a session and writes files into 'out' (or current dir).
-    After reading the sender's manifest, replies with a receiver manifest
+    Receives and writes files into 'out' (or current dir).
+    If 'resume' is True in the sender's manifest, replies with a receiver manifest
     detailing what is already present (with raw-bytes chained checksum).
     Honors 'append_from' in file headers to append remaining bytes.
     """
@@ -234,9 +238,7 @@ async def receive(server: str, code: str,
     async with connect(server, max_size=None, compression=None) as ws:
         await ws.send(hello)
 
-        while True:
-            frame = await ws.recv()
-
+        async for frame in ws:
             # --- binary chunk frames -------------------------------------
             if isinstance(frame, (bytes, bytearray)):
                 if cur_fp is None:
@@ -396,7 +398,7 @@ async def receive(server: str, code: str,
             if t == "eof":
                 break
 
-            # Any other text control we don't understand
+            # Exit on unknown text control
             print("[p2p_copy] receive(): unexpected control", o)
             return return_with_error_code()
 

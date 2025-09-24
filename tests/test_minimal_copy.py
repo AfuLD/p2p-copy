@@ -17,6 +17,92 @@ def _free_port() -> int:
         return s.getsockname()[1]
 
 
+def test_api_wont_accept_unintended_files(tmp_path: Path):
+    asyncio.run(async_api_wont_accept_file_string(tmp_path))
+
+async def async_api_wont_accept_file_string(tmp_path: Path):
+    """Einfacher End-to-End-Transfer über WS (kein TLS), eine Datei."""
+    host = "localhost"
+    port = _free_port()
+    server_url = f"ws://{host}:{port}"
+    code = "demo"
+
+    # Relay im Hintergrund starten (kein TLS für lokale Tests)
+    relay_task = asyncio.create_task(run_relay(host=host, port=port, use_tls=False))
+    # Warten bis der Server lauscht
+    await asyncio.sleep(0.1)
+
+    # Dateien vorbereiten
+    src = tmp_path / "sample.txt"
+    src.write_text("hello phase2", encoding="utf-8")
+    out_dir = tmp_path / "downloads"
+
+    # Receiver startet und wartet; Sender schickt danach
+    recv_task = asyncio.create_task(
+        api_receive(code=code, server=server_url, out=str(out_dir))
+    )
+    await asyncio.sleep(0.1)  # Receiver bereit werden lassen
+
+    try:
+        # noinspection PyTypeChecker
+        send_rc = await asyncio.wait_for(
+            asyncio.create_task(api_send(files=str(src), code=code, server=server_url)),
+            timeout=2)
+    except asyncio.TimeoutError:
+        send_rc = 999
+    try:
+        recv_rc = await asyncio.wait_for(recv_task, timeout=0.2)
+    except asyncio.TimeoutError:
+        recv_rc = 999
+
+    assert send_rc != 0 and recv_rc != 0, "files as non-list should not be allowed"
+
+    await asyncio.sleep(0.1)
+    recv_task = asyncio.create_task(
+        api_receive(code=code, server=server_url, out=str(out_dir))
+    )
+    await asyncio.sleep(0.1)  # Receiver bereit werden lassen
+
+    try:
+        send_rc = await asyncio.wait_for(
+            asyncio.create_task(api_send(files=[], code=code, server=server_url)),
+            timeout=2)
+    except asyncio.TimeoutError:
+        send_rc = 999
+    try:
+        recv_rc = await asyncio.wait_for(recv_task, timeout=0.2)
+    except asyncio.TimeoutError:
+        recv_rc = 999
+
+    assert send_rc != 0 and recv_rc != 0, "files as empty list should not be allowed"
+
+    await asyncio.sleep(0.1)
+    recv_task = asyncio.create_task(
+        api_receive(code=code, server=server_url, out=str(out_dir))
+    )
+    await asyncio.sleep(0.1)  # Receiver bereit werden lassen
+
+    try:
+        send_rc = await asyncio.wait_for(
+            asyncio.create_task(api_send(files=["xx","t"], code=code, server=server_url)),
+            timeout=2)
+    except asyncio.TimeoutError:
+        send_rc = 999
+    try:
+        recv_rc = await asyncio.wait_for(recv_task, timeout=0.2)
+    except asyncio.TimeoutError:
+        recv_rc = 999
+
+    assert send_rc != 0 and recv_rc != 0, "implausibly short files should not be allowed"
+
+    # Aufräumen: Relay stoppen
+    relay_task.cancel()
+
+    # Asserts
+    assert send_rc != 0 and recv_rc != 0
+    dest = out_dir / "sample.txt"
+    assert not dest.exists(), "Zieldatei fehlt nicht"
+
 def test_e2e_single_file_ws(tmp_path: Path):
         asyncio.run(async_test_e2e_single_file_ws(tmp_path))
 

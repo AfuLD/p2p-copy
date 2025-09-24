@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import collections
 from pathlib import Path
-from typing import Iterable, Iterator, Tuple, BinaryIO
+from typing import Iterable, Iterator, Tuple, BinaryIO, List
 
 CHUNK_SIZE = 1 << 20  # 1 MiB
 
@@ -16,7 +16,7 @@ async def read_in_chunks(fp: BinaryIO, *, chunk_size: int = CHUNK_SIZE) -> colle
             break
         yield chunk
 
-def iter_manifest_entries(paths: Iterable[str]) -> Iterator[Tuple[Path, Path, int]]:
+def iter_manifest_entries(paths: List[str]) -> Iterator[Tuple[Path, Path, int]]:
     """Yields tuples of (absolute path, relative path, size) for files in the given paths.
 
     Parameters
@@ -47,14 +47,24 @@ def iter_manifest_entries(paths: Iterable[str]) -> Iterator[Tuple[Path, Path, in
     Notes
     -----
     - Files in directories are yielded in sorted order (alphabetically by path).
-    - Non-existent paths are silently skipped.
+    - Non-existent paths are reported.
     - Symlinks are resolved to their target paths.
     - Tilde (~) is expanded to the user's home directory.
     - May raise FileNotFoundError or PermissionError if file access fails.
     """
+
+    if not isinstance(paths, list):
+        print("[p2p_copy] send(): files or dirs must be passed as list"); return []
+    elif not paths:
+       return []
+
     for raw in paths:
+        if len(raw) == 1:
+            print("[p2p_copy] send(): probably not a file:", raw)
+            continue
         p = Path(raw).expanduser()
         if not p.exists():
+            print("[p2p_copy] send(): file does not exist:", p)
             continue
         if p.is_file():
             yield p.resolve(), Path(p.name), p.stat().st_size

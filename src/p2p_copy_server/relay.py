@@ -84,9 +84,7 @@ async def _handle(ws: ServerConnection) -> None:
     if peer is None:
         # wait until paired; then this handler exits when ws closes
         try:
-            await asyncio.Future()
-        except asyncio.CancelledError:
-            pass
+            await ws.wait_closed()
         finally:
             async with LOCK:
                 if WAITING.get(code_hash, (None,None))[1] is ws:
