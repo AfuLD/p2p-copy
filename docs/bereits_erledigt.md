@@ -75,6 +75,15 @@
 * **WSS:** Übertragung via WSS ermöglicht über Server
 
 
-## Phase 6 – Resumieren & Robustheit
+## Phase 6 Resumieren & Robustheit
 
 * **READY:** Sender wartet auf Empfänger Verbindung
+* **Empfänger-Manifest:** Empfänger reagiert auf das Manifest des Senders mit einem eigenen Manifest (`receiver_manifest`), das alle bereits vorhandenen Dateien inkl. Größe und verketteter Prüfsumme (Chained Checksum über Rohbytes) enthält.
+* **resume Sender-Logik:** Sender wartet auf das Empfänger-Manifest und entscheidet pro Datei:
+    * **Skip:** Datei wird übersprungen, wenn sie beim Empfänger vollständig und unverändert vorhanden ist.
+    * **Append:** Bei Teil-Dateien wird nur der fehlende Rest übertragen (`append_from` im File-Header).
+    * **Overwrite:** Bei abweichenden Prüfsummen wird die Datei komplett neu gesendet.
+* **Protokoll-Erweiterungen:** Neue Nachrichtentypen `receiver_manifest`, `enc_receiver_manifest`, sowie Erweiterung von `file_begin` um `append_from`.
+* **Kombination mit Sicherheit & Kompression:** Resume funktioniert sowohl unverschlüsselt als auch in Kombination mit AES-GCM und Zstd-Kompression.
+* **Robustheit:** Empfänger kann unvollständige Dateien beibehalten und diese bei erneutem Transfer fortsetzen, ohne Daten neu übertragen zu müssen.
+
