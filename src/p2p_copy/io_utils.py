@@ -5,6 +5,8 @@ import collections
 from pathlib import Path
 from typing import Iterable, Iterator, Tuple, BinaryIO, List
 
+from p2p_copy.security import ChainedChecksum
+
 CHUNK_SIZE = 1 << 20  # 1 MiB
 
 async def read_in_chunks(fp: BinaryIO, *, chunk_size: int = CHUNK_SIZE) -> collections.AsyncIterable[bytes]:
@@ -15,6 +17,35 @@ async def read_in_chunks(fp: BinaryIO, *, chunk_size: int = CHUNK_SIZE) -> colle
         if not chunk:
             break
         yield chunk
+
+async def compute_chain_up_to(path: Path, limit: int | None = None) -> Tuple[int, bytes]:
+    """
+    Compute chained checksum over the RAW BYTES on disk for 'path'.
+    If limit is given, only the first 'limit' bytes are included.
+    Returns (bytes_hashed, final_chain_bytes).
+    """
+    c = ChainedChecksum()
+    hashed = 0
+    with path.open("rb") as fp:
+        if limit is None:
+            while True:
+                chunk = await asyncio.to_thread(fp.read, CHUNK_SIZE)
+                if not chunk:
+                    break
+                hashed += len(chunk)
+                c.next_hash(chunk)
+        else:
+            remaining = int(limit)
+            while remaining > 0:
+                to_read = min(remaining, CHUNK_SIZE)
+                chunk = await asyncio.to_thread(fp.read, to_read)
+                if not chunk:
+                    break
+                hashed += len(chunk)
+                remaining -= len(chunk)
+                c.next_hash(chunk)
+    return hashed, c.prev_chain
+
 
 def iter_manifest_entries(paths: List[str]) -> Iterator[Tuple[Path, Path, int]]:
     """Yields tuples of (absolute path, relative path, size) for files in the given paths.

@@ -145,7 +145,7 @@ async def run_relay(*, host: str, port: int, use_tls: bool = False,
 # We build on project modules where possible.
 
 from p2p_copy.security import ChainedChecksum, SecurityHandler
-from p2p_copy.io_utils import read_in_chunks
+from p2p_copy.io_utils import read_in_chunks, compute_chain_up_to
 from p2p_copy.io_utils import iter_manifest_entries, ensure_dir
 from p2p_copy.protocol import (
     Hello, Manifest, ManifestEntry, EOF,
@@ -194,7 +194,7 @@ class AppCompression:
         raise ValueError(self.algo)
 
 
-async def api_send(server: str, code: str, sources: Iterable[str], *,
+async def api_send(server: str, code: str, sources: List[str], *,
                    app_comp: AppCompression, chunk_size: int,
                    ws_compression: bool) -> int:
     # Build manifest
@@ -386,6 +386,31 @@ def _free_port() -> int:
 
 # ----------------------------- benchmark test -----------------------------
 
+def test_compression_compute_chain_up_to():
+    asyncio.run(async_compression_compute_chain_up_to())
+
+async def async_compression_compute_chain_up_to():
+    # Input corpus from ./test_resources
+    corpus_root = Path(__file__).parent / ".." / "test_resources"
+    corpus_root = corpus_root.resolve()
+    if not corpus_root.exists():
+        print("skip this test if no test_resources folder has been created")
+        print(f"test_resources dir missing: {corpus_root}")
+        return
+
+    src = corpus_root
+
+    t0 = time.perf_counter()
+    total_size = 0
+    total_size2 = 0
+    for p in corpus_root.glob("**/*"):
+        if p.is_file():
+            size, _ = await compute_chain_up_to(p)
+            total_size2 += size
+            total_size += p.stat().st_size
+
+    print(f"\nshould Compressed: {total_size // 2**20}MB, did compress: {total_size2 // 2**20}MB in {time.perf_counter() - t0:.3f}s")
+
 def test_compression_matrix_single_run(tmp_path: Path):
     # Parameter sets
     ws_compress_options = [False] # should be false if test is local
@@ -412,14 +437,7 @@ def test_compression_matrix_single_run(tmp_path: Path):
         print(f"test_resources dir missing: {corpus_root}")
         return
 
-    # Collect files into a temp src dir (so we copy the folder itself)
-    src = tmp_path / "src"
-    src.mkdir()
-    for p in corpus_root.glob("**/*"):
-        if p.is_file():# and str(p).endswith(".jpg"):
-            dest = src / p.relative_to(corpus_root)
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            dest.write_bytes(p.read_bytes())
+    src = corpus_root
 
     results = []
 

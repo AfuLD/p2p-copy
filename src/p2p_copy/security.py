@@ -1,4 +1,7 @@
 import hashlib
+import os
+
+from p2p_copy.protocol import EncryptedManifest
 
 
 def _get_argon2_hash(code: str, salt: bytes) -> bytes:
@@ -38,6 +41,15 @@ class SecurityHandler:
             return self.cipher.decrypt(self.nonce_hasher.next_hash(), chunk, None)
         return chunk
 
+    def build_encrypted_manifest(self, manifest: str) -> str:
+        start_nonce = os.urandom(32)
+        self.nonce_hasher.next_hash(start_nonce)
+        enc_manifest = self.encrypt_chunk(manifest.encode())
+        return EncryptedManifest(
+            type="enc_manifest",
+            nonce=start_nonce.hex(),
+            hidden_manifest=enc_manifest.hex()
+        ).to_json()
 
 class ChainedChecksum:
     """

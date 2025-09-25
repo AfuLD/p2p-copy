@@ -1,54 +1,21 @@
 from __future__ import annotations
 
 import asyncio
-import os
 from pathlib import Path
-from typing import Optional, List, Tuple, BinaryIO, Dict, Any
+from typing import Optional, List, Tuple, BinaryIO, Dict
 
 from websockets.asyncio.client import connect
 
 from .compressor import CompressMode, Compressor
-from .security import ChainedChecksum, SecurityHandler
-from .io_utils import read_in_chunks, iter_manifest_entries, ensure_dir, CHUNK_SIZE
+from .io_utils import read_in_chunks, iter_manifest_entries, ensure_dir, compute_chain_up_to
 from .protocol import (
     Hello, Manifest, ManifestEntry, loads, EOF,
     file_begin, FILE_EOF, pack_chunk, unpack_chunk,
-    EncryptedManifest, encrypted_file_begin,
+    encrypted_file_begin,
     ReceiverManifest, ReceiverManifestEntry, EncryptedReceiverManifest
 )
+from .security import ChainedChecksum, SecurityHandler
 
-# ----------------------------- helpers --------------------------------
-
-async def _compute_chain_up_to(path: Path, limit: int | None = None) -> tuple[int, bytes]:
-    """
-    Compute chained checksum over the RAW BYTES on disk for 'path'.
-    If limit is given, only the first 'limit' bytes are included.
-    Returns (bytes_hashed, final_chain_bytes).
-    """
-    c = ChainedChecksum()
-    hashed = 0
-    with path.open("rb") as fp:
-        if limit is None:
-            while True:
-                chunk = await asyncio.to_thread(fp.read, CHUNK_SIZE)
-                if not chunk:
-                    break
-                hashed += len(chunk)
-                c.next_hash(chunk)
-        else:
-            remaining = int(limit)
-            while remaining > 0:
-                to_read = min(remaining, CHUNK_SIZE)
-                chunk = await asyncio.to_thread(fp.read, to_read)
-                if not chunk:
-                    break
-                hashed += len(chunk)
-                remaining -= len(chunk)
-                c.next_hash(chunk)
-    return hashed, c.prev_chain
-
-def _by_path(entries: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
-    return {e.get("path"): e for e in entries if isinstance(e, dict) and "path" in e}
 
 # ----------------------------- sender --------------------------------
 
@@ -62,41 +29,10 @@ async def send(server: str, code: str, files: List[str],
     - If 'encrypt' is True, encrypts files and file metadata.
     """
 
-    # Build manifest entries from given file list
-    resolved: List[Tuple[Path, Path, int]] = list(iter_manifest_entries(files))
-    if not resolved:
-        print("[p2p_copy] send(): no legal files where passed"); return 3
-
-    entries: List[ManifestEntry] = [
-        ManifestEntry(path=rel.as_posix(), size=size) for (_, rel, size) in resolved
-    ]
-
-    # Initialize security-handler
-    secure = SecurityHandler(code, encrypt)
-
-    hello = Hello(type="hello", code_hash_hex=secure.code_hash.hex(), role="sender").to_json()
-    manifest = Manifest(type="manifest", resume=resume, entries=entries).to_json()
-
-    # Optionally encrypt the manifest
-    if encrypt:
-        start_nonce = os.urandom(32)
-        secure.nonce_hasher.next_hash(start_nonce)
-        enc_manifest = secure.encrypt_chunk(manifest.encode())
-        manifest = EncryptedManifest(
-            type="enc_manifest",
-            nonce=start_nonce.hex(),
-            hidden_manifest=enc_manifest.hex()
-        ).to_json()
-
-    compressor = Compressor(mode=compress)
-
-    async with connect(server, max_size=None, compression=None) as ws:  # Disable WebSocket compression
-        # hello + manifest
-        await ws.send(hello)
-
-        # Wait for ready from relay
+    # Closures to break up functions for readability
+    async def wait_for_receiver_ready():
         try:
-            ready_frame = await asyncio.wait_for(ws.recv(), timeout=30.0)  # 30s Timeout
+            ready_frame = await asyncio.wait_for(ws.recv(), timeout=300)  # 300s Timeout
             if isinstance(ready_frame, str):
                 ready = loads(ready_frame)
                 if ready.get("type") != "ready":
@@ -106,102 +42,150 @@ async def send(server: str, code: str, files: List[str],
         except asyncio.TimeoutError:
             print("[p2p_copy] send(): timeout waiting for ready"); return 3
 
+
+    async def wait_for_receiver_resume_manifest():
+        try:
+            raw = await asyncio.wait_for(ws.recv(), timeout=30)
+        except asyncio.TimeoutError:
+            print("[p2p_copy] send(): timeout waiting for receiver_manifest"); return 3
+        if isinstance(raw, str):
+            o = loads(raw)
+            t = o.get("type")
+            if t == "enc_receiver_manifest" and encrypt:
+                try:
+                    hidden = bytes.fromhex(o["hidden_manifest"])
+                    m_str = secure.decrypt_chunk(hidden).decode()
+                    o = loads(m_str)
+                    t = o.get("type")
+                except Exception:
+                    print("[p2p_copy] send():  failed to decrypt encrypted receiver manifest"); return 3
+
+            if t == "receiver_manifest":
+                for e in o.get("entries", []):
+                    try:
+                        p = e["path"]
+                        sz = int(e["size"])
+                        ch = bytes.fromhex(e["chain_hex"])
+                        resume_map[p] = (sz, ch)
+                    except Exception:
+                        print("[p2p_copy] send():  failed to read receiver manifest"); return 3
+
+
+    async def pairing_with_receiver():
+        await ws.send(hello)
+        if receiver_not_ready :=  await wait_for_receiver_ready():
+            return receiver_not_ready
+
+        # Send file infos to receiver
         await ws.send(manifest)
 
-        # --- wait for receiver resume manifest (optionally encrypted) ----
-        resume_map: Dict[str, Tuple[int, bytes]] = {}
-        if resume:
-            try:
-                raw = await asyncio.wait_for(ws.recv(), timeout=30)
-            except asyncio.TimeoutError:
-                print("[p2p_copy] send(): timeout waiting for receiver_manifest"); return 3
-            if isinstance(raw, str):
-                o = loads(raw)
-                t = o.get("type")
-                if t == "enc_receiver_manifest" and encrypt:
-                    try:
-                        hidden = bytes.fromhex(o["hidden_manifest"])
-                        m_str = secure.decrypt_chunk(hidden).decode()
-                        o = loads(m_str)
-                        t = o.get("type")
-                    except Exception:
-                        print("[p2p_copy] send():  failed to decrypt encrypted receiver manifest"); return 3
-
-                if t == "receiver_manifest":
-                    for e in o.get("entries", []):
-                        try:
-                            p = e["path"]
-                            sz = int(e["size"])
-                            ch = bytes.fromhex(e["chain_hex"])
-                            resume_map[p] = (sz, ch)
-                        except Exception:
-                            print("[p2p_copy] send():  failed to read receiver manifest"); return 3
+        # wait for receiver resume manifest (optionally encrypted)
+        if resume and (no_response_manifest := await wait_for_receiver_resume_manifest()):
+            return no_response_manifest
 
 
-        # --- transfer each file ------------------------------------------
-        for abs_p, rel_p, size in resolved:
-            append_from = 0
+    async def determine_file_resume_point():
+        hint = resume_map.get(rel_p.as_posix())
+        if hint is not None:
+            recv_size, recv_chain = hint
+            if 0 < recv_size <= size:
+                hashed, local_chain = await compute_chain_up_to(abs_p, limit=recv_size)
+                if hashed == recv_size and local_chain == recv_chain:
+                    return recv_size
+                else:
+                    # mismatch -> overwrite from scratch
+                    return 0
+        return 0
 
-            # Resume decision (optional)
-            if resume:
-                hint = resume_map.get(rel_p.as_posix())
-                if hint is not None:
-                    recv_size, recv_chain = hint
-                    if 0 < recv_size <= size:
-                        hashed, local_chain = await _compute_chain_up_to(abs_p, limit=recv_size)
-                        if hashed == recv_size and local_chain == recv_chain:
-                            if recv_size == size:
-                                # Receiver already has identical file -> skip
-                                continue
-                            append_from = recv_size
-                        # else mismatch -> overwrite from scratch
 
-            # Open file and seek if appending remainder only
-            with abs_p.open("rb") as fp:
-                if append_from:
-                    await asyncio.to_thread(fp.seek, append_from, 0)
+    async def send_file():
+        append_from = 0
+        # Determine resume point (optional)
+        if resume and (append_from := await determine_file_resume_point()) == size:
+            return # Receiver already has identical file -> skip
 
-                # Initialize per-transfer chain and sequence
-                chained_checksum = ChainedChecksum()
-                seq = 0
+        # Open file and optionally seek resume point
+        with abs_p.open("rb") as fp:
+            if append_from:
+                await asyncio.to_thread(fp.seek, append_from, 0)
 
-                # Compression decision is made from the current fp position
-                chunk = Compressor.determine_compression(compressor, fp)
-                file_info = file_begin(rel_p.as_posix(), size, compressor.compression_type, append_from=append_from)
+            # Initialize per-transfer chain and sequence
+            chained_checksum = ChainedChecksum()
+            seq = 0
 
-                if encrypt:
-                    enc_file_info = secure.encrypt_chunk(file_info.encode())
-                    file_info = encrypted_file_begin(enc_file_info)
+            # Determine whether to use compression by compressing the first chunk
+            chunk = Compressor.determine_compression(compressor, fp)
 
-                # Send file header
-                last_send = await ws.send(file_info)
+            # Build the complete file info header
+            file_info = file_begin(rel_p.as_posix(), size, compressor.compression_type, append_from=append_from)
 
-                # Encrypt (if selected)
-                enc_chunk = secure.encrypt_chunk(chunk)
+            # Optionally encrypt the file info
+            if encrypt:
+                enc_file_info = secure.encrypt_chunk(file_info.encode())
+                file_info = encrypted_file_begin(enc_file_info)
 
-                # send the first prepared chunk
-                frame: bytes = pack_chunk(seq, chained_checksum.next_hash(chunk), enc_chunk)
+            # Send file info header
+            await ws.send(file_info)
+
+            # Prepare the first frame, first chunk is optionally compressed and then encrypted
+            frame: bytes = pack_chunk(seq, chained_checksum.next_hash(chunk), secure.encrypt_chunk(chunk))
+            seq += 1
+
+            def next_frame():
+                """prepares the next frame of a file to send, optionally compresses and encrypts"""
+                compressed_chunk = compressor.compress(chunk)
+                enc_chunk = secure.encrypt_chunk(compressed_chunk)
+                return pack_chunk(seq, chained_checksum.next_hash(compressed_chunk), enc_chunk)
+
+            # Send remaining chunks
+            async for chunk in read_in_chunks(fp):
+                # Next frame gets prepared in a parallel thread
+                next_frame_coro = asyncio.to_thread(next_frame)
+                # Send the current frame while next frame gets prepared
+                await ws.send(frame)
+                # Complete the next frame
+                frame: bytes = await next_frame_coro
                 seq += 1
 
+        # Send the last frame
+        await ws.send(frame)
+        await ws.send(FILE_EOF)
 
-                def next_frame():
-                    chunk = compressor.compress(_chunk)
-                    enc_chunk = secure.encrypt_chunk(chunk)
-                    return pack_chunk(seq, chained_checksum.next_hash(chunk), enc_chunk)
 
-                # Send remaining chunks
-                async for _chunk in read_in_chunks(fp):
-                    next_frame_coro = asyncio.to_thread(next_frame)
-                    await ws.send(frame)
-                    frame: bytes = await next_frame_coro
-                    seq += 1
+    # Build manifest entries from given file list
+    resolved_file_list: List[Tuple[Path, Path, int]] = list(iter_manifest_entries(files))
+    if not resolved_file_list:
+        print("[p2p_copy] send(): no legal files where passed"); return 3
 
-            await ws.send(frame)
-            await ws.send(FILE_EOF)
+    entries: List[ManifestEntry] = [ManifestEntry(path=rel.as_posix(), size=size) for (_, rel, size) in resolved_file_list]
 
-        # All done
+    # Initialize security-handler, compressor
+    secure = SecurityHandler(code, encrypt)
+    compressor = Compressor(mode=compress)
+
+    hello = Hello(type="hello", code_hash_hex=secure.code_hash.hex(), role="sender").to_json()
+    manifest = Manifest(type="manifest", resume=resume, entries=entries).to_json()
+    if encrypt: # Optionally encrypt the manifest
+        manifest = secure.build_encrypted_manifest(manifest)
+
+    # Connect to relay (disable WebSocket internal compression)
+    async with connect(server, max_size=None, compression=None) as ws:
+        # Stores info returned by the sender about what files are already present
+        resume_map: Dict[str, Tuple[int, bytes]] = {}
+        # Attempt to connect and optionally exchange info with receiver
+        if pairing_failed := await pairing_with_receiver():
+            return pairing_failed
+
+        # Transfer each file
+        for abs_p, rel_p, size in resolved_file_list:
+            await send_file()
+
+        # All done, send message to confirm the end of the copying process
         await ws.send(EOF)
+        # Return non-error code
         return 0
+
+
 
 # ----------------------------- receiver ------------------------------
 
@@ -311,7 +295,7 @@ async def receive(server: str, code: str,
                     if local_path.is_file():
                         local_size = local_path.stat().st_size
                         if local_size > 0:
-                            hashed, chain_b = await _compute_chain_up_to(local_path)
+                            hashed, chain_b = await compute_chain_up_to(local_path)
                             resume_known[rel.as_posix()] = (hashed, chain_b)
                             reply_entries.append(
                                 ReceiverManifestEntry(
