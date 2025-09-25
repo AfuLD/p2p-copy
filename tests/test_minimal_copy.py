@@ -256,8 +256,11 @@ def test_cli_end_to_end_ws(tmp_path: Path):
     # Sender starten
     src = tmp_path / "sample.txt"
     src.write_text("hello from cli", encoding="utf-8")
+    src2 = tmp_path / "sample2.txt"
+    src2.write_text("hello2 from cli", encoding="utf-8")
+
     send_proc = subprocess.run(
-        ["p2p-copy", "send", f"ws://{host}:{port}", code, str(src)],
+        ["p2p-copy", "send", f"ws://{host}:{port}", code, str(src), str(src2)],
         capture_output=True,
         text=True,
         timeout=5,
@@ -271,6 +274,9 @@ def test_cli_end_to_end_ws(tmp_path: Path):
     # Prüfen
     dest = out_dir / "sample.txt"
     assert dest.exists() and dest.read_text(encoding="utf-8") == "hello from cli"
+
+    dest2 = out_dir / "sample2.txt"
+    assert dest2.exists() and dest2.read_text(encoding="utf-8") == "hello2 from cli"
 
     # Aufräumen
     relay_proc.terminate()
