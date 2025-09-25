@@ -174,27 +174,29 @@ async def send(server: str, code: str, files: List[str],
                     file_info = encrypted_file_begin(enc_file_info)
 
                 # Send file header
-                last_send = ws.send(file_info)
+                last_send = await ws.send(file_info)
 
                 # Encrypt (if selected)
                 enc_chunk = secure.encrypt_chunk(chunk)
 
                 # send the first prepared chunk
                 frame: bytes = pack_chunk(seq, chained_checksum.next_hash(chunk), enc_chunk)
-                await last_send
-                last_send = ws.send(frame)
                 seq += 1
+
+
+                def next_frame():
+                    chunk = compressor.compress(_chunk)
+                    enc_chunk = secure.encrypt_chunk(chunk)
+                    return pack_chunk(seq, chained_checksum.next_hash(chunk), enc_chunk)
 
                 # Send remaining chunks
                 async for _chunk in read_in_chunks(fp):
-                    chunk = compressor.compress(_chunk)
-                    enc_chunk = secure.encrypt_chunk(chunk)
-                    frame: bytes = pack_chunk(seq, chained_checksum.next_hash(chunk), enc_chunk)
-                    await last_send
-                    last_send = ws.send(frame)
+                    next_frame_coro = asyncio.to_thread(next_frame)
+                    await ws.send(frame)
+                    frame: bytes = await next_frame_coro
                     seq += 1
 
-            await last_send
+            await ws.send(frame)
             await ws.send(FILE_EOF)
 
         # All done
