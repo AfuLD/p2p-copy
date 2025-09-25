@@ -23,7 +23,7 @@ import time
 from contextlib import closing
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple, BinaryIO
+from typing import Dict, List, Optional, Tuple, BinaryIO
 
 # ----------------------------- relay (shim) -----------------------------
 from websockets.asyncio.server import serve, ServerConnection
