@@ -198,10 +198,172 @@ async def receive(server: str, code: str,
     detailing what is already present (with raw-bytes chained checksum).
     Honors 'append_from' in file headers to append remaining bytes.
     """
+
+    def return_with_error_code(msg: str = ""):
+        if cur_fp is not None:
+            cur_fp.close()
+        if msg:
+            print(f"[p2p_copy] receive(): {msg}")
+        return 4
+
+    async def handle_hello(o: dict):
+        # Ignore sender's hello
+        pass
+
+    async def handle_enc_manifest(o: dict):
+        if not encrypt:
+            print("[p2p_copy] receive(): unexpected enc_manifest without encryption")
+            raise ValueError("Unexpected encrypted manifest")
+        try:
+            nonce_hex = o.get("nonce")
+            if nonce_hex:
+                secure.nonce_hasher.next_hash(bytes.fromhex(nonce_hex))
+            hidden = bytes.fromhex(o["hidden_manifest"])
+            manifest_str = secure.decrypt_chunk(hidden).decode()
+            o = loads(manifest_str)
+            await handle_manifest(o)  # Delegate to plain handler
+        except Exception as e:
+            raise ValueError(f"Failed to decrypt manifest: {e}")
+
+    async def handle_manifest(o: dict):
+        resume = o.get("resume", False)
+        entries = o.get("entries", [])
+        reply_entries: List[ReceiverManifestEntry] = []
+
+        for e in entries:
+            try:
+                rel = Path(e["path"])
+                local_path = (out_dir / rel).resolve()
+                if local_path.is_file():
+                    local_size = local_path.stat().st_size
+                    if local_size > 0:
+                        hashed, chain_b = await compute_chain_up_to(local_path)
+                        resume_known[rel.as_posix()] = (hashed, chain_b)
+                        reply_entries.append(
+                            ReceiverManifestEntry(
+                                path=rel.as_posix(),
+                                size=hashed,
+                                chain_hex=chain_b.hex(),
+                            )
+                        )
+            except Exception:
+                continue  # Skip bad entries
+
+        if resume:
+            if encrypt:
+                clear = ReceiverManifest(type="receiver_manifest", entries=reply_entries).to_json().encode()
+                hidden = secure.encrypt_chunk(clear)
+                reply = EncryptedReceiverManifest(
+                    type="enc_receiver_manifest",
+                    hidden_manifest=hidden.hex()
+                ).to_json()
+                await ws.send(reply)
+            else:
+                await ws.send(ReceiverManifest(type="receiver_manifest", entries=reply_entries).to_json())
+
+    async def handle_enc_file(o: dict):
+        if not encrypt:
+            raise ValueError("Unexpected encrypted file header")
+        try:
+            hidden = bytes.fromhex(o["hidden_file"])
+            file_str = secure.decrypt_chunk(hidden).decode()
+            o = loads(file_str)
+            await handle_file(o)
+        except Exception as e:
+            raise ValueError(f"Failed to decrypt file info: {e}")
+
+    async def handle_file(o: dict):
+        nonlocal cur_fp,cur_expected_size, cur_seq_expected, bytes_written, compressor, chained_checksum
+        if cur_fp is not None:
+            raise ValueError("Got new file while previous still open")
+        try:
+            rel_path = o["path"]
+            total_size: int = o.get("size")
+            compression = o.get("compression", "none")
+            append_from: int = o.get("append_from", 0)
+        except Exception:
+            raise ValueError(f"Bad file header: {o}")
+
+        dest = (out_dir / Path(rel_path)).resolve()
+        ensure_dir(dest.parent)
+
+        open_mode = "wb"
+        expected_remaining = total_size
+        if append_from > 0 and dest.exists() and dest.is_file():
+            local_size = dest.stat().st_size
+            if 0 <= append_from <= total_size and local_size == append_from:
+                open_mode = "ab"
+                expected_remaining = total_size - append_from
+            else:
+                expected_remaining = total_size
+
+        cur_fp = dest.open(open_mode)
+        cur_expected_size = expected_remaining
+        cur_seq_expected = 0
+        bytes_written = 0
+        compressor.set_decompression(compression)
+        chained_checksum = ChainedChecksum()
+
+    async def handle_file_eof(o: dict):
+        nonlocal cur_fp
+        if cur_fp is None:
+            raise ValueError("Got file_eof without open file")
+        if cur_expected_size is not None and bytes_written != cur_expected_size:
+            raise ValueError(f"Size mismatch: {bytes_written} != {cur_expected_size}")
+        cur_fp.close()
+        cur_fp = None
+
+    async def handle_chunk(frame: bytes):
+        nonlocal bytes_written, cur_seq_expected
+        if cur_fp is None:
+            raise ValueError("Unexpected binary data without open file")
+        seq, chain, payload = unpack_chunk(frame)
+        if seq != cur_seq_expected:
+            raise ValueError(f"Sequence mismatch: {seq} != {cur_seq_expected}")
+
+        raw_payload = secure.decrypt_chunk(payload) if encrypt else payload
+        if chained_checksum.next_hash(raw_payload) != chain:
+            raise ValueError("Chained checksum mismatch")
+
+        chunk = compressor.decompress(raw_payload)
+        await asyncio.to_thread(cur_fp.write, chunk)
+
+        bytes_written += len(chunk)
+        cur_seq_expected += 1
+
+    async def handle_eof(o: dict):
+        raise StopAsyncIteration  # Break the loop cleanly
+
+    # Frame type dispatcher
+    async def dispatch_frame(frame):
+        if isinstance(frame, (bytes, bytearray)):
+            await handle_chunk(frame)
+            return
+
+        if not isinstance(frame, str):
+            raise ValueError("Unknown frame type")
+
+        o = loads(frame)
+        t = o.get("type")
+
+        handlers = {
+            "hello": handle_hello,
+            "enc_manifest": handle_enc_manifest,
+            "manifest": handle_manifest,
+            "enc_file": handle_enc_file,
+            "file": handle_file,
+            "file_eof": handle_file_eof,
+            "eof": handle_eof,
+        }
+        handler = handlers.get(t)
+        if handler is None:
+            raise ValueError(f"Unexpected control: {o}")
+        await handler(o)
+
+
     out_dir = Path(out or ".")
     ensure_dir(out_dir)
 
-    # Initialize security-handler
     secure = SecurityHandler(code, encrypt)
     hello = Hello(type="hello", code_hash_hex=secure.code_hash.hex(), role="receiver").to_json()
 
@@ -212,184 +374,18 @@ async def receive(server: str, code: str,
     bytes_written = 0
     chained_checksum = ChainedChecksum()
     compressor = Compressor()
-
-    # For resume: we may keep a quick map (not strictly needed, but handy for diagnostics)
     resume_known: Dict[str, Tuple[int, bytes]] = {}
-
-    def return_with_error_code():
-        if cur_fp is not None:
-            cur_fp.close()
-        return 4
 
     async with connect(server, max_size=None, compression=None) as ws:
         await ws.send(hello)
+        try:
+            async for frame in ws:
+                await dispatch_frame(frame)
+        except StopAsyncIteration:
+            pass  # Normal EOF
+        except ValueError as e:
+            return return_with_error_code(str(e))
 
-        async for frame in ws:
-            # --- binary chunk frames -------------------------------------
-            if isinstance(frame, (bytes, bytearray)):
-                if cur_fp is None:
-                    # Unexpected binary data
-                    return return_with_error_code()
-                seq, chain, payload = unpack_chunk(frame)
-                if seq != cur_seq_expected:
-                    print("[p2p_copy] receive(): sequence mismatch", seq, "!=", cur_seq_expected)
-                    return return_with_error_code()
-
-                # Decrypt (if enabled) then verify chain over the DECRYPTED (still compressed) chunk
-                raw_payload = secure.decrypt_chunk(payload) if encrypt else payload
-                if chained_checksum.next_hash(raw_payload) != chain:
-                    print("[p2p_copy] receive(): chained checksum mismatch")
-                    return return_with_error_code()
-
-                # Decompress (if enabled) to raw bytes, then write
-                chunk = compressor.decompress(raw_payload)
-                await asyncio.to_thread(cur_fp.write, chunk)
-
-                bytes_written += len(chunk)
-                cur_seq_expected += 1
-                continue
-
-            # --- text control frames -------------------------------------
-            if not isinstance(frame, str):
-                print("[p2p_copy] receive(): unknown frame type")
-                return return_with_error_code()
-
-            o = loads(frame)
-            t = o.get("type")
-
-            # hello from peer can be ignored
-            if t == "hello":
-                continue
-
-            # encrypted manifest from sender
-            if t == "enc_manifest" and encrypt:
-                try:
-                    # Advance nonce accumulator before decryption if a nonce is provided
-                    nonce_hex = o.get("nonce")
-                    secure.nonce_hasher.next_hash(bytes.fromhex(nonce_hex))
-                    hidden = bytes.fromhex(o["hidden_manifest"])
-                    manifest_str = secure.decrypt_chunk(hidden).decode()
-                    o = loads(manifest_str)
-                    t = o.get("type")
-                except Exception as e:
-                    print("[p2p_copy] receive(): failed to decrypt manifest", e)
-                    return return_with_error_code()
-
-            # plain manifest from sender
-            if t == "manifest":
-                # gain info on whether to resume
-                resume = o.get("resume")
-
-                # Build and send our receiver manifest (possibly encrypted)
-                entries = o.get("entries", []) or []
-                reply_entries: List[ReceiverManifestEntry] = []
-
-                for e in entries:
-                    try:
-                        rel = Path(e["path"])
-                        sender_size = int(e["size"])  # noqa: F841  (kept for clarity / future checks)
-                    except Exception:
-                        continue
-
-                    local_path = (out_dir / rel).resolve()
-                    if local_path.is_file():
-                        local_size = local_path.stat().st_size
-                        if local_size > 0:
-                            hashed, chain_b = await compute_chain_up_to(local_path)
-                            resume_known[rel.as_posix()] = (hashed, chain_b)
-                            reply_entries.append(
-                                ReceiverManifestEntry(
-                                    path=rel.as_posix(),
-                                    size=hashed,
-                                    chain_hex=chain_b.hex(),
-                                )
-                            )
-
-                # Send resume manifest back only if expected
-                if resume and encrypt:
-                    # Serialize cleartext receiver manifest then encrypt
-                    clear = ReceiverManifest(type="receiver_manifest", entries=reply_entries).to_json().encode()
-                    hidden = secure.encrypt_chunk(clear)
-                    reply = EncryptedReceiverManifest(
-                        type="enc_receiver_manifest",
-                        hidden_manifest=hidden.hex()
-                    ).to_json()
-                    await ws.send(reply)
-                elif resume:
-                    await ws.send(ReceiverManifest(type="receiver_manifest", entries=reply_entries).to_json())
-                continue
-
-            # file header (possibly encrypted)
-            if t == "enc_file" and encrypt:
-                try:
-                    hidden = bytes.fromhex(o["hidden_file"])
-                    file_str = secure.decrypt_chunk(hidden).decode()
-                    o = loads(file_str)
-                    t = o.get("type")
-                except Exception as e:
-                    print("[p2p_copy] receive(): failed to decrypt file info", e)
-                    return return_with_error_code()
-
-            if t == "file":
-                # Close any previous file just in case
-                if cur_fp is not None:
-                    print("[p2p_copy] receive(): got new file while previous still open")
-                    return return_with_error_code()
-
-                try:
-                    rel_path = o["path"]
-                    total_size: int = o.get("size")
-                    compression = o.get("compression", "none")
-                    append_from: int = o.get("append_from")
-                except Exception:
-                    print("[p2p_copy] receive(): bad file header", o)
-                    return return_with_error_code()
-
-                dest = (out_dir / Path(rel_path)).resolve()
-                ensure_dir(dest.parent)
-
-                open_mode = "wb"
-                expected_remaining = total_size
-                if append_from > 0 and dest.exists() and dest.is_file():
-                    local_size = dest.stat().st_size
-                    if 0 <= append_from <= total_size and local_size == append_from:
-                        open_mode = "ab"
-                        expected_remaining = total_size - append_from
-                    else:
-                        # size mismatch -> overwrite from scratch
-                        expected_remaining = total_size
-
-                # noinspection PyTypeChecker
-                cur_fp = dest.open(open_mode)
-                cur_expected_size = expected_remaining
-                cur_seq_expected = 0
-                bytes_written = 0
-                compressor.set_decompression(compression)
-                chained_checksum = ChainedChecksum()
-                continue
-
-            if t == "file_eof":
-                if cur_fp is None:
-                    print("[p2p_copy] receive(): got file_eof without open file")
-                    return return_with_error_code()
-                # Validate expected size
-                elif cur_expected_size is not None and bytes_written != cur_expected_size:
-                    print("[p2p_copy] receive(): size mismatch", bytes_written, "!=", cur_expected_size)
-                    return return_with_error_code()
-                else:
-                    cur_fp.close()
-                    cur_fp = None
-                continue
-
-            if t == "eof":
-                break
-
-            # Exit on unknown text control
-            print("[p2p_copy] receive(): unexpected control", o)
-            return return_with_error_code()
-
-    # ensure no file left open
     if cur_fp is not None:
-        print("[p2p_copy] receive(): stream ended while file open")
-        return return_with_error_code()
+        return return_with_error_code("Stream ended while file open")
     return 0
