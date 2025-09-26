@@ -3,7 +3,6 @@ from dataclasses import dataclass, asdict
 from typing import Literal, Sequence, Any, Dict, Tuple
 import json, struct
 
-PROTOCOL_VERSION: int = 5
 
 # --- helpers ---------------------------------------------------------
 
@@ -12,6 +11,7 @@ def dumps(msg: Dict[str, Any]) -> str:
 
 def loads(s: str) -> Dict[str, Any]:
     return json.loads(s)
+
 
 # --- control messages ------------------------------------------------
 
@@ -51,8 +51,6 @@ class EncryptedManifest:
             "nonce": self.nonce,
             "hidden_manifest": self.hidden_manifest
         })
-
-# --- NEW: receiver resume manifest ----------------------------------
 
 @dataclass(frozen=True)
 class ReceiverManifestEntry:
@@ -117,6 +115,7 @@ READY = dumps({"type": "ready"})
 FILE_EOF = dumps({"type":"file_eof"})
 
 EOF = dumps({"type":"eof"})
+
 
 # --- chunked framing -------------------------------------------------
 

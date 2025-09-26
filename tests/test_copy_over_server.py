@@ -44,15 +44,38 @@ def _mk_files(base: Path, layout: dict[str, bytes]) -> None:
 # The tests
 # ----------------------------
 
-def test_server_transfer_timings_for_compression_modes_encrypted_ws(tmp_path):
-    transfer_timings_for_compression_modes(tmp_path, encrypt=True, ws_protocol="ws://")
+def test_server_transfer_timings(tmp_path):
+    """
+    Tests to copy over a remote server using wss and ws
+    If no server_url_without_protocol is provided in "../test_resources/server_url.txt" this test will be skipped
+    Either wss or ws will fail depending on the protocol the server actually uses
+    """
+
+    server_url_without_protocol = ""
+    try:
+        with open("../test_resources/server_url.txt","r") as f:
+            server_url_without_protocol = f.read()
+    except:
+        # If no server URL was provided skip this test
+        print("\ntest copy over server skipped because no server url was provided")
+        return
+
+    both_failed = None
+    try:
+        transfer_timings_for_compression_modes(tmp_path, server_url_without_protocol, encrypt=False, resume=False, ws_protocol="wss://")
+        transfer_timings_for_compression_modes(tmp_path, server_url_without_protocol, encrypt=False, resume=True, ws_protocol="wss://")
+    except:
+        try:
+            transfer_timings_for_compression_modes(tmp_path, server_url_without_protocol, encrypt=True, resume=False, ws_protocol="ws://")
+            transfer_timings_for_compression_modes(tmp_path, server_url_without_protocol, encrypt=True, resume=True, ws_protocol="ws://")
+        except Exception as E:
+            both_failed = E.args
+
+    if both_failed:
+        raise Exception(both_failed[0])
 
 
-def test_server_transfer_timings_for_compression_modes_wss(tmp_path):
-    transfer_timings_for_compression_modes(tmp_path, encrypt=False, ws_protocol="wss://")
-
-
-def transfer_timings_for_compression_modes(tmp_path: Path, encrypt: bool, ws_protocol: str):
+def transfer_timings_for_compression_modes(tmp_path: Path, server_url_without_protocol: str, encrypt: bool, resume: bool, ws_protocol: str):
     """
     Measure time to receive for compressible vs incompressible payloads across
     compression modes. We don't assert hard numbers—only sensible orderings:
@@ -63,14 +86,7 @@ def transfer_timings_for_compression_modes(tmp_path: Path, encrypt: bool, ws_pro
       and auto ≈ off.
     """
 
-    try:
-        print(os.getcwd())
-        with open("../test_resources/server_url.txt","r") as f:
-            server_url = ws_protocol + f.read()
-    except:
-        # If no server URL was provided skip this test
-        print("\ntest copy over server skipped because no server url was provided")
-        return
+    server_url = ws_protocol + server_url_without_protocol
 
     # Size large enough to see a difference(~3 MiB)
     SIZE = 3 * 1024 * 1024
@@ -78,22 +94,22 @@ def transfer_timings_for_compression_modes(tmp_path: Path, encrypt: bool, ws_pro
     comp = _compressible_bytes(SIZE)
     incomp = _incompressible_bytes(SIZE)
 
-    async def run_all(encrypt: bool):
+    async def run_all():
         results = {}
         for label, payload in [("compressible", comp), ("incompressible", incomp)]:
             results[label] = {}
             for mode in (CompressMode.off, CompressMode.auto, CompressMode.on):
                 # warm up
                 await asyncio.sleep(0)
-                elapsed = await _time_one_transfer(payload, mode, tmp_path, f"{label}", server_url, encrypt)
+                elapsed = await _time_one_transfer(payload, mode, tmp_path, f"{label}", server_url, encrypt, resume)
                 results[label][mode.value] = elapsed
         return results
 
 
-    results = asyncio.run(asyncio.wait_for(run_all(encrypt), timeout=5))
+    results = asyncio.run(asyncio.wait_for(run_all(), timeout=5))
 
     # Pretty-print timings into test output for debugging
-    print(f"\nTiming results with {encrypt=}, {ws_protocol=} (seconds):")
+    print(f"\nTiming results with {encrypt=}, {resume=}, {ws_protocol=} (seconds):")
     for label, modes in results.items():
         print(f"  {label}: " + ", ".join(f"{m}={t:.3f}" for m, t in modes.items()))
 
@@ -121,7 +137,7 @@ def transfer_timings_for_compression_modes(tmp_path: Path, encrypt: bool, ws_pro
 # Transfer timing helper
 # ----------------------------
 
-async def _time_one_transfer(payload: bytes, mode: CompressMode, tmp_path: Path, label: str, server_url: str, encrypt: bool) -> float:
+async def _time_one_transfer(payload: bytes, mode: CompressMode, tmp_path: Path, label: str, server_url: str, encrypt: bool, resume: bool) -> float:
     """Run a single send/receive and return elapsed seconds."""
     code = f"timing-{label}-{mode.value}"
 
@@ -135,7 +151,7 @@ async def _time_one_transfer(payload: bytes, mode: CompressMode, tmp_path: Path,
     await asyncio.sleep(0.1)  # ensure receiver is listening
 
     t0 = time.monotonic()
-    send_rc = await api_send(server=server_url, code=code, files=[str(src)], compress=mode, encrypt=encrypt)
+    send_rc = await api_send(server=server_url, code=code, files=[str(src)], compress=mode, encrypt=encrypt, resume=resume)
     recv_rc = await asyncio.wait_for(recv_task, timeout=2.0)
     elapsed = time.monotonic() - t0
 

@@ -87,3 +87,8 @@
 * **Kombination mit Sicherheit & Kompression:** Resume funktioniert sowohl unverschlüsselt als auch in Kombination mit AES-GCM und Zstd-Kompression.
 * **Robustheit:** Empfänger kann unvollständige Dateien beibehalten und diese bei erneutem Transfer fortsetzen, ohne Daten neu übertragen zu müssen.
 
+
+## Phase 7 Python-API & DX
+
+* **Verwendungsbeispiele:** Detaillierte Anleitungen und code Beispiele im Ordner `examples` erstellt
+* **Verwendung von Teilfunktionen (Closures):** Aufteilung von api code für bessere Lesbarkeit und klare Schritte.

@@ -23,10 +23,10 @@ def _make_bytes(n: int) -> bytes:
 
 @pytest.mark.parametrize("encrypt", [False, True])
 @pytest.mark.parametrize("compress", [CompressMode.off, CompressMode.on])
-def test_resume(tmp_path: Path, encrypt: bool, compress: CompressMode):
-    asyncio.run(resume(tmp_path, encrypt, compress))
+def test_copy_resume(tmp_path: Path, encrypt: bool, compress: CompressMode):
+    asyncio.run(copy_resume(tmp_path, encrypt, compress))
 
-async def resume(tmp_path: Path, encrypt: bool, compress: CompressMode):
+async def copy_resume(tmp_path: Path, encrypt: bool, compress: CompressMode):
     """Check that resume works with/without compression and encryption."""
 
     port = _free_port()

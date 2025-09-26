@@ -20,16 +20,18 @@ from .security import ChainedChecksum, SecurityHandler
 # ----------------------------- sender --------------------------------
 
 async def send(server: str, code: str, files: List[str],
-               encrypt: bool = False,
+               *, encrypt: bool = False,
                compress: CompressMode = CompressMode.auto,
                resume: bool = False) -> int:
     """
+    everything after * it is keyword-only
     Connects to server and sends files/directories.
     - If 'resume' is True, waits for a receiver manifest and decides skip/append/overwrite existing files.
     - If 'encrypt' is True, encrypts files and file metadata.
     """
 
     # Closures to break up functions for readability
+
     async def wait_for_receiver_ready():
         try:
             ready_frame = await asyncio.wait_for(ws.recv(), timeout=300)  # 300s Timeout
@@ -151,6 +153,8 @@ async def send(server: str, code: str, files: List[str],
         await ws.send(frame)
         await ws.send(FILE_EOF)
 
+    # End of Closures
+
 
     # Build manifest entries from given file list
     resolved_file_list: List[Tuple[Path, Path, int]] = list(iter_manifest_entries(files))
@@ -190,14 +194,17 @@ async def send(server: str, code: str, files: List[str],
 # ----------------------------- receiver ------------------------------
 
 async def receive(server: str, code: str,
-                  encrypt: bool = False,
+                  *, encrypt: bool = False,
                   out: Optional[str] = None) -> int:
     """
+    everything after * it is keyword-only
     Receives and writes files into 'out' (or current dir).
     If 'resume' is True in the sender's manifest, replies with a receiver manifest
     detailing what is already present (with raw-bytes chained checksum).
     Honors 'append_from' in file headers to append remaining bytes.
     """
+
+    # Closures to break up functions for readability
 
     def return_with_error_code(msg: str = ""):
         if cur_fp is not None:
@@ -205,10 +212,6 @@ async def receive(server: str, code: str,
         if msg:
             print(f"[p2p_copy] receive(): {msg}")
         return 4
-
-    async def handle_hello(o: dict):
-        # Ignore sender's hello
-        pass
 
     async def handle_enc_manifest(o: dict):
         if not encrypt:
@@ -347,7 +350,6 @@ async def receive(server: str, code: str,
         t = o.get("type")
 
         handlers = {
-            "hello": handle_hello,
             "enc_manifest": handle_enc_manifest,
             "manifest": handle_manifest,
             "enc_file": handle_enc_file,
@@ -359,6 +361,8 @@ async def receive(server: str, code: str,
         if handler is None:
             raise ValueError(f"Unexpected control: {o}")
         await handler(o)
+
+    # End of Closures
 
 
     out_dir = Path(out or ".")
