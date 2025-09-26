@@ -5,15 +5,15 @@ import shutil
 from pathlib import Path
 from importlib import metadata as md
 
-# Defaults (used if we can't read pyproject.toml)
-DEFAULT_REQUIRED = {"typer": "0.12", "websockets": "12.0", "rich": "13.7"}
-DEFAULT_EXTRAS = {"zstandard": "0.22", "cryptography": "42.0", "argon2_cffi": "21.1"}
+# Defaults (used if pyproject.toml can't be read)
+DEFAULT_REQUIRED = {"typer": "0.12", "websockets": "12.0", "rich": "13.7", "zstandard": "0.22"}
+DEFAULT_EXTRAS = {"cryptography": "42.0", "argon2_cffi": "21.1"}
 
 try:  # Python 3.11+
     # noinspection PyCompatibility
     import tomllib  # type: ignore[attr-defined]
 except ModuleNotFoundError:  # Python 3.10 fallback (no extra deps)
-    tomllib = None  # we'll fall back to the DEFAULT_* above
+    tomllib = None  # Fall back to the DEFAULT_* above
 
 
 def _parse_version(v: str):

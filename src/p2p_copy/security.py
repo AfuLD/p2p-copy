@@ -3,11 +3,18 @@ import os
 
 from p2p_copy.protocol import EncryptedManifest
 
+def import_optional_security_libs():
+    global hash_secret_raw, Type, AESGCM
+    try:
+        # security libs are needed if encryption is used
+        from argon2.low_level import hash_secret_raw, Type
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+    except ModuleNotFoundError as E:
+        raise ModuleNotFoundError(E.msg + '\nTo use encryption optional security libs are needed (pip install ".[security]")')
 
 def _get_argon2_hash(code: str, salt: bytes) -> bytes:
-    # security libs are needed if encryption is used
-    from argon2.low_level import hash_secret_raw, Type
-
+    import_optional_security_libs()
     return hash_secret_raw(
         secret=code.encode(),
         salt=salt,
@@ -22,9 +29,7 @@ class SecurityHandler:
     def __init__(self, code: str, encrypt: bool):
         self.encrypt = encrypt
         if self.encrypt:
-            # security libs are needed if encryption is used
-            from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-
+            import_optional_security_libs()
             self.code_hash = _get_argon2_hash(code, b"code_hash used for hello-match")
             self.nonce_hasher = ChainedChecksum()
             self.cipher = AESGCM(_get_argon2_hash(code, b"cipher used for E2E-encryption"))
