@@ -9,7 +9,6 @@ def import_optional_security_libs():
         # security libs are needed if encryption is used
         from argon2.low_level import hash_secret_raw, Type
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-
     except ModuleNotFoundError as E:
         raise ModuleNotFoundError(E.msg + '\nTo use encryption optional security libs are needed (pip install ".[security]")')
 

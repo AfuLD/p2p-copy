@@ -1,3 +1,4 @@
+import asyncio
 from enum import Enum
 import zstandard as zstd
 from typing import Optional, BinaryIO
@@ -18,12 +19,11 @@ class Compressor:
         self.use_compression: bool = mode == CompressMode.on
         self.compression_type: str = "zstd" if mode == CompressMode.on else "none"
 
-    def determine_compression(self, fp: BinaryIO) -> bytes:
+    async def determine_compression(self, first_chunk: bytes) -> bytes:
         """
         Handles first chunk of af a file and returns it.
         If mode is set to auto and if the chunk does compress well, enable compression for this file.
         """
-        first_chunk = fp.read(CHUNK_SIZE)
         if self.mode == CompressMode.off:
             return first_chunk
 

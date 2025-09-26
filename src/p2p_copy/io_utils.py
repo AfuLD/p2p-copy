@@ -3,13 +3,13 @@ from __future__ import annotations
 import asyncio
 import collections
 from pathlib import Path
-from typing import Iterator, Tuple, BinaryIO, List
+from typing import Iterator, Tuple, BinaryIO, List, AsyncIterable
 
 from p2p_copy.security import ChainedChecksum
 
 CHUNK_SIZE = 1 << 20  # 1 MiB
 
-async def read_in_chunks(fp: BinaryIO, *, chunk_size: int = CHUNK_SIZE) -> collections.AsyncIterable[bytes]:
+async def read_in_chunks(fp: BinaryIO, *, chunk_size: int = CHUNK_SIZE) -> AsyncIterable[bytes]:
     """reads in bytes from a file in chunks, starts at current file position"""
     while True:
         # Read from disk without blocking the event-loop
@@ -85,9 +85,9 @@ def iter_manifest_entries(paths: List[str]) -> Iterator[Tuple[Path, Path, int]]:
     """
 
     if not isinstance(paths, list):
-        print("[p2p_copy] send(): files or dirs must be passed as list"); return []
+        print("[p2p_copy] send(): files or dirs must be passed as list"); return
     elif not paths:
-       return []
+       return
 
     for raw in paths:
         if len(raw) == 1:

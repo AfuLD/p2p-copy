@@ -71,13 +71,12 @@ async def _handle(ws: ServerConnection) -> None:
     peer: Optional[ServerConnection] = None
     async with LOCK:
         if code_hash in WAITING:
-            other_role, other_ws = WAITING.pop(code_hash)
+            other_role, peer = WAITING.pop(code_hash)
             if other_role == role:
                 # two senders or two receivers — reject both
-                await other_ws.close(code=1013, reason="Duplicate role for code")
+                await peer.close(code=1013, reason="Duplicate role for code")
                 await ws.close(code=1013, reason="Duplicate role for code")
                 return
-            peer = other_ws
         else:
             WAITING[code_hash] = (role, ws)
 
@@ -96,7 +95,7 @@ async def _handle(ws: ServerConnection) -> None:
     t2 = asyncio.create_task(_pipe(peer, ws))
 
     # 4) Inform sender that pipe is ready
-    await (ws if role == "sender" else other_ws).send(READY)
+    await (ws if role == "sender" else peer).send(READY)
 
     # wait for one side to finish
     done, pending = await asyncio.wait({t1, t2}, return_when=asyncio.FIRST_COMPLETED)

@@ -7,7 +7,7 @@ from typing import Optional, List, Tuple, BinaryIO, Dict
 from websockets.asyncio.client import connect
 
 from .compressor import CompressMode, Compressor
-from .io_utils import read_in_chunks, iter_manifest_entries, ensure_dir, compute_chain_up_to
+from .io_utils import read_in_chunks, iter_manifest_entries, ensure_dir, compute_chain_up_to, CHUNK_SIZE
 from .protocol import (
     Hello, Manifest, ManifestEntry, loads, EOF,
     file_begin, FILE_EOF, pack_chunk, unpack_chunk,
@@ -116,7 +116,8 @@ async def send(server: str, code: str, files: List[str],
             seq = 0
 
             # Determine whether to use compression by compressing the first chunk
-            chunk = Compressor.determine_compression(compressor, fp)
+            chunk = await asyncio.to_thread(fp.read, CHUNK_SIZE)
+            chunk = await Compressor.determine_compression(compressor, chunk)
 
             # Build the complete file info header
             file_info = file_begin(rel_p.as_posix(), size, compressor.compression_type, append_from=append_from)
@@ -219,8 +220,7 @@ async def receive(server: str, code: str,
             raise ValueError("Unexpected encrypted manifest")
         try:
             nonce_hex = o.get("nonce")
-            if nonce_hex:
-                secure.nonce_hasher.next_hash(bytes.fromhex(nonce_hex))
+            secure.nonce_hasher.next_hash(bytes.fromhex(nonce_hex))
             hidden = bytes.fromhex(o["hidden_manifest"])
             manifest_str = secure.decrypt_chunk(hidden).decode()
             o = loads(manifest_str)
