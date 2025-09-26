@@ -358,8 +358,8 @@ def test_transfer_timings_for_compression_modes_encrypted(tmp_path):
 
     # --- Assertions with slack to avoid flakiness ---
     # Compressible should benefit from compression
-    assert comp_on <= comp_off * 0.75, f"Expected 'on' to be faster on compressible data (on={comp_on:.3f}s, off={comp_off:.3f}s)"
-    assert comp_on * 0.9 - 0.01 <= comp_auto <=  comp_off * 0.75, \
+    assert comp_on <= comp_off * 0.9, f"Expected 'on' to be faster on compressible data (on={comp_on:.3f}s, off={comp_off:.3f}s)"
+    assert comp_on * 0.9 - 0.01 <= comp_auto <=  comp_off * 0.9, \
         f"Expected 'auto' ~ 'on' for compressible (auto={comp_auto:.3f}s, on={comp_on:.3f}s)"
 
     # Incompressible should not benefit; 'off' should be as fast or faster

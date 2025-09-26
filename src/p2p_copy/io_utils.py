@@ -9,7 +9,22 @@ from p2p_copy.security import ChainedChecksum
 CHUNK_SIZE = 1 << 20  # 1 MiB
 
 async def read_in_chunks(fp: BinaryIO, *, chunk_size: int = CHUNK_SIZE) -> AsyncIterable[bytes]:
-    """reads in bytes from a file in chunks, starts at current file position"""
+    """
+    Asynchronously read bytes from a file in chunks.
+
+    Parameters
+    ----------
+    fp : BinaryIO
+        The file pointer to read from.
+    chunk_size : int, optional
+        Size of each chunk in bytes. Default is 1 MiB.
+
+    Yields
+    ------
+    bytes
+        The next chunk of data.
+    """
+
     while True:
         # Read from disk without blocking the event-loop
         chunk = await asyncio.to_thread(fp.read,chunk_size)
@@ -19,10 +34,21 @@ async def read_in_chunks(fp: BinaryIO, *, chunk_size: int = CHUNK_SIZE) -> Async
 
 async def compute_chain_up_to(path: Path, limit: int | None = None) -> Tuple[int, bytes]:
     """
-    Compute chained checksum over the RAW BYTES on disk for 'path'.
-    If limit is given, only the first 'limit' bytes are included.
-    Returns (bytes_hashed, final_chain_bytes).
+    Compute chained checksum over the raw bytes of a file up to a limit.
+
+    Parameters
+    ----------
+    path : Path
+        Path to the file.
+    limit : int, optional
+        Maximum bytes to hash. If None, hash the entire file.
+
+    Returns
+    -------
+    tuple[int, bytes]
+        (bytes_hashed, final_chain_bytes)
     """
+
     c = ChainedChecksum()
     hashed = 0
     with path.open("rb") as fp:
@@ -47,46 +73,29 @@ async def compute_chain_up_to(path: Path, limit: int | None = None) -> Tuple[int
 
 
 def iter_manifest_entries(paths: List[str]) -> Iterator[Tuple[Path, Path, int]]:
-    """Yields tuples of (absolute path, relative path, size) for files in the given paths.
+    """
+    Yield manifest entries for files in the given paths (files or directories).
 
     Parameters
     ----------
     paths : List[str]
-        An iterable of strings representing file or directory paths.
+        List of file or directory paths.
 
     Yields
     ------
     Tuple[Path, Path, int]
-        A tuple containing:
-        - Absolute path (Path): The resolved absolute path of the file.
-        - Relative path (Path): The path relative to the input path's basename
-          (e.g., for input `/foo/mydir`, files yield `mydir/subpath`).
-        - Size (int): The file size in bytes.
-
-    Examples
-    --------
-    For a single file:
-    >>> list(iter_manifest_entries(["/foo/bar.txt"]))
-    [(Path("/foo/bar.txt"), Path("bar.txt"), 1234)]
-
-    For a directory:
-    >>> list(iter_manifest_entries(["/foo/mydir"]))
-    [(Path("/foo/mydir/file1.txt"), Path("mydir/file1.txt"), 100),
-     (Path("/foo/mydir/subdir/file2.txt"), Path("mydir/subdir/file2.txt"), 200)]
+        (absolute_path, relative_path, size)
 
     Notes
     -----
-    - Files in directories are yielded in sorted order (alphabetically by path).
-    - Non-existent paths are reported.
-    - Symlinks are resolved to their target paths.
-    - Tilde (~) is expanded to the user's home directory.
-    - May raise FileNotFoundError or PermissionError if file access fails.
+    - Yields files in sorted order for directories.
+    - Skips non-existent or invalid paths.
     """
 
     if not isinstance(paths, list):
         print("[p2p_copy] send(): files or dirs must be passed as list"); return
     elif not paths:
-       return
+        return
 
     for raw in paths:
         if len(raw) == 1:
@@ -106,4 +115,12 @@ def iter_manifest_entries(paths: List[str]) -> Iterator[Tuple[Path, Path, int]]:
                     yield sub.resolve(), rel, sub.stat().st_size
 
 def ensure_dir(p: Path) -> None:
+    """
+    Ensure the directory exists, creating parents if needed.
+
+    Parameters
+    ----------
+    p : Path
+        The path to ensure is a directory.
+    """
     p.mkdir(parents=True, exist_ok=True)

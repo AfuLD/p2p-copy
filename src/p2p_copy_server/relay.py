@@ -10,8 +10,14 @@ from websockets.asyncio.server import serve, ServerConnection
 from p2p_copy.protocol import READY
 
 
+WAITING: Dict[str, Tuple[str, ServerConnection]] = {}  # code_hash -> (role, ws)
+LOCK = asyncio.Lock()
+
 def use_production_logger():
-    # Custom logging for concise handshake errors
+    """
+    Configure logging for production use, suppressing tracebacks for handshake errors.
+    """
+
     import logging
     relay_logger = logging.getLogger("websockets.server")
 
@@ -33,10 +39,11 @@ def use_production_logger():
     relay_logger.addHandler(handler)
     relay_logger.setLevel(logging.INFO)
 
-WAITING: Dict[str, Tuple[str, ServerConnection]] = {}  # code_hash -> (role, ws)
-LOCK = asyncio.Lock()
-
 async def _pipe(a: ServerConnection, b: ServerConnection) -> None:
+    """
+    Pipe data bidirectionally between two WebSocket connections until one closes.
+    """
+
     try:
         async for frame in a:
             await b.send(frame)
@@ -49,6 +56,10 @@ async def _pipe(a: ServerConnection, b: ServerConnection) -> None:
             pass
 
 async def _handle(ws: ServerConnection) -> None:
+    """
+    Handle a single WebSocket connection: validate hello, pair with peer, and pipe data.
+    """
+
     # 1) expect hello (text)
     try:
         raw = await ws.recv()
@@ -110,10 +121,30 @@ async def _handle(ws: ServerConnection) -> None:
             t.cancel()
 
 async def run_relay(host: str, port: int,
-        use_tls: bool = True,
-        certfile: Optional[str] = None,
-        keyfile: Optional[str] = None) -> None:
+                    use_tls: bool = True,
+                    certfile: Optional[str] = None,
+                    keyfile: Optional[str] = None) -> None:
+    """
+    Run the WebSocket relay server, optionally with TLS.
 
+    Parameters
+    ----------
+    host : str
+        Host to bind to.
+    port : int
+        Port to bind to.
+    use_tls : bool, optional
+        Whether to use TLS. Default is True.
+    certfile : str, optional
+        Path to TLS certificate file.
+    keyfile : str, optional
+        Path to TLS key file.
+
+    Raises
+    ------
+    RuntimeError
+        If TLS is requested but certfile or keyfile is missing.
+    """
     ssl_ctx = None
     if use_tls:
         if not certfile or not keyfile:

@@ -12,7 +12,6 @@ p2p_copy/                  # Kernbibliothek
   checksum.py              # Datei-Hash + Ketten-Checksummen
   resume.py                # Lücken-Ermittlung und -Übertragung
   io_utils.py              # asynchrones Dateihandling, Pfade, Iterator
-  errors.py                # Exceptions
 
 p2p_copy_cli/              # Kommandozeilenoberfläche
   __init__.py
@@ -23,9 +22,6 @@ p2p_copy_server/           # Relay-Server zum weiterleiten von Nachrichten
   relay.py                 # Asyncio + websockets, Matching per SHA-256(code)
   sessions.py              # Lebenszyklus, Pings, Limits
 
-tests/                     # Unit-, Property-, Integrations- und E2E-Tests
-benchmarks/                # Skripte & Daten
-docs/                      # MkDocs, Architektur und Modulskizze, Vorgehensplan
 ```
 
 ## Hinweis zur tatsächlichen Projektstruktur (src-Layout)
@@ -37,7 +33,7 @@ src/
   p2p_copy/...
   p2p_copy_cli/...
   p2p_copy_server/...
-tests/
-benchmarks/
 docs/
+examples/
+tests/
 ```

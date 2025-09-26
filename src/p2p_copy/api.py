@@ -24,10 +24,35 @@ async def send(server: str, code: str, files: List[str],
                compress: CompressMode = CompressMode.auto,
                resume: bool = False) -> int:
     """
-    everything after * it is keyword-only
-    Connects to server and sends files/directories.
-    - If 'resume' is True, waits for a receiver manifest and decides skip/append/overwrite existing files.
-    - If 'encrypt' is True, encrypts files and file metadata.
+    Send files/directories to a receiver via the relay server.
+
+    Parameters
+    ----------
+    server : str
+        The WebSocket server URL (ws:// or wss://).
+    code : str
+        The shared passphrase/code for pairing.
+    files : List[str]
+        List of files and/or directories to send.
+    encrypt : bool, optional
+        Enable end-to-end encryption. Default is False.
+        Receiver needs to use the same setting.
+    compress : CompressMode, optional
+        Compression mode. Default is 'auto'.
+    resume : bool, optional
+        Enable resume of partial transfers. Default is False.
+        If True, attempt to skip identical files and append
+        incomplete files based on receiver feedback.
+
+    Returns
+    -------
+    int
+        Exit code: 0 on success, non-zero on error.
+
+    Notes
+    -----
+    - Supports resuming by comparing checksums of partial files.
+    - Uses chunked streaming for large files.
     """
 
     # Closures to break up functions for readability
@@ -38,18 +63,21 @@ async def send(server: str, code: str, files: List[str],
             if isinstance(ready_frame, str):
                 ready = loads(ready_frame)
                 if ready.get("type") != "ready":
-                    print("[p2p_copy] send(): unexpected frame after hello"); return 3
+                    print("[p2p_copy] send(): unexpected frame after hello")
+                    return 3
             else:
-                print("[p2p_copy] send(): expected text frame after hello"); return 3
+                print("[p2p_copy] send(): expected text frame after hello")
+                return 3
         except asyncio.TimeoutError:
-            print("[p2p_copy] send(): timeout waiting for ready"); return 3
-
+            print("[p2p_copy] send(): timeout waiting for ready")
+            return 3
 
     async def wait_for_receiver_resume_manifest():
         try:
             raw = await asyncio.wait_for(ws.recv(), timeout=30)
         except asyncio.TimeoutError:
-            print("[p2p_copy] send(): timeout waiting for receiver_manifest"); return 3
+            print("[p2p_copy] send(): timeout waiting for receiver_manifest")
+            return 3
         if isinstance(raw, str):
             o = loads(raw)
             t = o.get("type")
@@ -60,7 +88,8 @@ async def send(server: str, code: str, files: List[str],
                     o = loads(m_str)
                     t = o.get("type")
                 except Exception:
-                    print("[p2p_copy] send():  failed to decrypt encrypted receiver manifest"); return 3
+                    print("[p2p_copy] send():  failed to decrypt encrypted receiver manifest")
+                    return 3
 
             if t == "receiver_manifest":
                 for e in o.get("entries", []):
@@ -70,12 +99,12 @@ async def send(server: str, code: str, files: List[str],
                         ch = bytes.fromhex(e["chain_hex"])
                         resume_map[p] = (sz, ch)
                     except Exception:
-                        print("[p2p_copy] send():  failed to read receiver manifest"); return 3
-
+                        print("[p2p_copy] send():  failed to read receiver manifest")
+                        return 3
 
     async def pairing_with_receiver():
         await ws.send(hello)
-        if receiver_not_ready :=  await wait_for_receiver_ready():
+        if receiver_not_ready := await wait_for_receiver_ready():
             return receiver_not_ready
 
         # Send file infos to receiver
@@ -84,7 +113,6 @@ async def send(server: str, code: str, files: List[str],
         # wait for receiver resume manifest (optionally encrypted)
         if resume and (no_response_manifest := await wait_for_receiver_resume_manifest()):
             return no_response_manifest
-
 
     async def determine_file_resume_point():
         hint = resume_map.get(rel_p.as_posix())
@@ -99,12 +127,11 @@ async def send(server: str, code: str, files: List[str],
                     return 0
         return 0
 
-
     async def send_file():
         append_from = 0
         # Determine resume point (optional)
         if resume and (append_from := await determine_file_resume_point()) == size:
-            return # Receiver already has identical file -> skip
+            return  # Receiver already has identical file -> skip
 
         # Open file and optionally seek resume point
         with abs_p.open("rb") as fp:
@@ -156,13 +183,14 @@ async def send(server: str, code: str, files: List[str],
 
     # End of Closures
 
-
     # Build manifest entries from given file list
     resolved_file_list: List[Tuple[Path, Path, int]] = list(iter_manifest_entries(files))
     if not resolved_file_list:
-        print("[p2p_copy] send(): no legal files where passed"); return 3
+        print("[p2p_copy] send(): no legal files where passed")
+        return 3
 
-    entries: List[ManifestEntry] = [ManifestEntry(path=rel.as_posix(), size=size) for (_, rel, size) in resolved_file_list]
+    entries: List[ManifestEntry] = [ManifestEntry(path=rel.as_posix(), size=size) for (_, rel, size) in
+                                    resolved_file_list]
 
     # Initialize security-handler, compressor
     secure = SecurityHandler(code, encrypt)
@@ -170,7 +198,7 @@ async def send(server: str, code: str, files: List[str],
 
     hello = Hello(type="hello", code_hash_hex=secure.code_hash.hex(), role="sender").to_json()
     manifest = Manifest(type="manifest", resume=resume, entries=entries).to_json()
-    if encrypt: # Optionally encrypt the manifest
+    if encrypt:  # Optionally encrypt the manifest
         manifest = secure.build_encrypted_manifest(manifest)
 
     # Connect to relay (disable WebSocket internal compression)
@@ -191,18 +219,36 @@ async def send(server: str, code: str, files: List[str],
         return 0
 
 
-
 # ----------------------------- receiver ------------------------------
 
 async def receive(server: str, code: str,
                   *, encrypt: bool = False,
                   out: Optional[str] = None) -> int:
     """
-    everything after * it is keyword-only
-    Receives and writes files into 'out' (or current dir).
-    If 'resume' is True in the sender's manifest, replies with a receiver manifest
-    detailing what is already present (with raw-bytes chained checksum).
-    Honors 'append_from' in file headers to append remaining bytes.
+    Receive files from a sender via the relay server.
+
+    Parameters
+    ----------
+    server : str
+        The WebSocket server URL (ws:// or wss://).
+    code : str
+        The shared passphrase/code for pairing.
+    encrypt : bool, optional
+        Enable end-to-end encryption. Default is False.
+        Sender needs to use the same setting.
+    out : str, optional
+        Output directory. Default is current directory.
+
+    Returns
+    -------
+    int
+        Exit code: 0 on success, non-zero on error.
+
+    Notes
+    -----
+    - Supports resume if sender requests it.
+    - Writes files to the output directory, preserving relative paths.
+    - Info on whether to resume and compress is received from the sender
     """
 
     # Closures to break up functions for readability
@@ -276,7 +322,7 @@ async def receive(server: str, code: str,
             raise ValueError(f"Failed to decrypt file info: {e}")
 
     async def handle_file(o: dict):
-        nonlocal cur_fp,cur_expected_size, cur_seq_expected, bytes_written, compressor, chained_checksum
+        nonlocal cur_fp, cur_expected_size, cur_seq_expected, bytes_written, compressor, chained_checksum
         if cur_fp is not None:
             raise ValueError("Got new file while previous still open")
         try:
@@ -363,7 +409,6 @@ async def receive(server: str, code: str,
         await handler(o)
 
     # End of Closures
-
 
     out_dir = Path(out or ".")
     ensure_dir(out_dir)
