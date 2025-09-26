@@ -22,6 +22,7 @@ def dumps(msg: Dict[str, Any]) -> str:
     """
     return json.dumps(msg, separators=(",", ":"), ensure_ascii=False)
 
+
 def loads(s: str) -> Dict[str, Any]:
     """
     JSON-load a string into a dict.
@@ -57,9 +58,11 @@ class Hello:
     """
     type: Literal["hello"]
     code_hash_hex: str
-    role: Literal["sender","receiver"]
+    role: Literal["sender", "receiver"]
+
     def to_json(self) -> str:
-        return dumps({"type":"hello","code_hash_hex":self.code_hash_hex,"role":self.role})
+        return dumps({"type": "hello", "code_hash_hex": self.code_hash_hex, "role": self.role})
+
 
 @dataclass(frozen=True)
 class ManifestEntry:
@@ -75,6 +78,7 @@ class ManifestEntry:
     """
     path: str
     size: int
+
 
 @dataclass(frozen=True)
 class Manifest:
@@ -93,12 +97,14 @@ class Manifest:
     type: Literal["manifest"]
     entries: Sequence[ManifestEntry]
     resume: bool = False
+
     def to_json(self) -> str:
         return dumps({
             "type": "manifest",
             "resume": self.resume,
             "entries": [asdict(e) for e in self.entries]
         })
+
 
 @dataclass(frozen=True)
 class EncryptedManifest:
@@ -119,12 +125,14 @@ class EncryptedManifest:
     type: Literal["enc_manifest"]
     nonce: str
     hidden_manifest: str
+
     def to_json(self) -> str:
         return dumps({
             "type": "enc_manifest",
             "nonce": self.nonce,
             "hidden_manifest": self.hidden_manifest
         })
+
 
 @dataclass(frozen=True)
 class ReceiverManifestEntry:
@@ -144,6 +152,7 @@ class ReceiverManifestEntry:
     size: int
     chain_hex: str
 
+
 @dataclass(frozen=True)
 class ReceiverManifest:
     """
@@ -158,11 +167,13 @@ class ReceiverManifest:
     """
     type: Literal["receiver_manifest"]
     entries: Sequence[ReceiverManifestEntry]
+
     def to_json(self) -> str:
         return dumps({
             "type": "receiver_manifest",
             "entries": [asdict(e) for e in self.entries]
         })
+
 
 @dataclass(frozen=True)
 class EncryptedReceiverManifest:
@@ -178,11 +189,13 @@ class EncryptedReceiverManifest:
     """
     type: Literal["enc_receiver_manifest"]
     hidden_manifest: str
+
     def to_json(self) -> str:
         return dumps({
             "type": "enc_receiver_manifest",
             "hidden_manifest": self.hidden_manifest
         })
+
 
 # --- file control ----------------------------------------------------
 
@@ -220,6 +233,7 @@ def file_begin(path: str, size: int, compression: str = "none", append_from: int
 
     return dumps(msg)
 
+
 def encrypted_file_begin(hidden_file_info: bytes) -> str:
     """
     Wrap encrypted file info in a control message.
@@ -240,18 +254,19 @@ def encrypted_file_begin(hidden_file_info: bytes) -> str:
     }
     return dumps(payload)
 
+
 READY = dumps({"type": "ready"})
 
-FILE_EOF = dumps({"type":"file_eof"})
+FILE_EOF = dumps({"type": "file_eof"})
 
-EOF = dumps({"type":"eof"})
-
+EOF = dumps({"type": "eof"})
 
 # --- chunked framing -------------------------------------------------
 
 # Binary frames: [ seq: uint64_be | chain: 32 bytes | payload... ]
 # The 'chain' is sha256(prev_chain || payload)
 CHUNK_HEADER = struct.Struct("!Q32s")
+
 
 def pack_chunk(seq: int, chain: bytes, payload: bytes) -> bytes:
     """
@@ -272,6 +287,7 @@ def pack_chunk(seq: int, chain: bytes, payload: bytes) -> bytes:
         Packed frame.
     """
     return CHUNK_HEADER.pack(seq, chain) + payload
+
 
 def unpack_chunk(frame: bytes) -> Tuple[int, bytes, bytes]:
     """

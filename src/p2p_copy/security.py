@@ -3,6 +3,7 @@ import os
 
 from p2p_copy.protocol import EncryptedManifest
 
+
 def import_optional_security_libs():
     """
     Import optional security libraries (argon2-cffi, cryptography) if encryption is used.
@@ -13,7 +14,9 @@ def import_optional_security_libs():
         from argon2.low_level import hash_secret_raw, Type
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
     except ModuleNotFoundError as E:
-        raise ModuleNotFoundError(E.msg + '\nTo use encryption optional security libs are needed (pip install ".[security]")')
+        raise ModuleNotFoundError(
+            E.msg + '\nTo use encryption optional security libs are needed (pip install ".[security]")')
+
 
 def _get_argon2_hash(code: str, salt: bytes) -> bytes:
     """
@@ -36,11 +39,12 @@ def _get_argon2_hash(code: str, salt: bytes) -> bytes:
         secret=code.encode(),
         salt=salt,
         time_cost=3,
-        memory_cost=32 * 2**10,       # 32 MiB * 8 threads
+        memory_cost=32 * 2 ** 10,  # 32 MiB * 8 threads
         parallelism=8,
         hash_len=32,
         type=Type.ID
     )
+
 
 class SecurityHandler:
     """
@@ -64,7 +68,7 @@ class SecurityHandler:
         else:
             self.code_hash = hashlib.sha256(code.encode()).digest()
 
-    def encrypt_chunk(self, chunk:bytes) -> bytes:
+    def encrypt_chunk(self, chunk: bytes) -> bytes:
         """
         Encrypt a chunk if encryption is enabled.
 
@@ -82,7 +86,7 @@ class SecurityHandler:
             return self.cipher.encrypt(self.nonce_hasher.next_hash(), chunk, None)
         return chunk
 
-    def decrypt_chunk(self, chunk:bytes) -> bytes:
+    def decrypt_chunk(self, chunk: bytes) -> bytes:
         """
         Decrypt a chunk if encryption is enabled.
 
@@ -122,6 +126,7 @@ class SecurityHandler:
             nonce=start_nonce.hex(),
             hidden_manifest=enc_manifest.hex()
         ).to_json()
+
 
 class ChainedChecksum:
     """

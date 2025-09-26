@@ -8,6 +8,7 @@ from p2p_copy.security import ChainedChecksum
 
 CHUNK_SIZE = 1 << 20  # 1 MiB
 
+
 async def read_in_chunks(fp: BinaryIO, *, chunk_size: int = CHUNK_SIZE) -> AsyncIterable[bytes]:
     """
     Asynchronously read bytes from a file in chunks.
@@ -27,10 +28,11 @@ async def read_in_chunks(fp: BinaryIO, *, chunk_size: int = CHUNK_SIZE) -> Async
 
     while True:
         # Read from disk without blocking the event-loop
-        chunk = await asyncio.to_thread(fp.read,chunk_size)
+        chunk = await asyncio.to_thread(fp.read, chunk_size)
         if not chunk:
             break
         yield chunk
+
 
 async def compute_chain_up_to(path: Path, limit: int | None = None) -> Tuple[int, bytes]:
     """
@@ -93,7 +95,8 @@ def iter_manifest_entries(paths: List[str]) -> Iterator[Tuple[Path, Path, int]]:
     """
 
     if not isinstance(paths, list):
-        print("[p2p_copy] send(): files or dirs must be passed as list"); return
+        print("[p2p_copy] send(): files or dirs must be passed as list")
+        return
     elif not paths:
         return
 
@@ -113,6 +116,7 @@ def iter_manifest_entries(paths: List[str]) -> Iterator[Tuple[Path, Path, int]]:
                 if sub.is_file():
                     rel = Path(p.name) / sub.relative_to(root)
                     yield sub.resolve(), rel, sub.stat().st_size
+
 
 def ensure_dir(p: Path) -> None:
     """

@@ -9,9 +9,9 @@ from websockets.asyncio.server import serve, ServerConnection
 
 from p2p_copy.protocol import READY
 
-
 WAITING: Dict[str, Tuple[str, ServerConnection]] = {}  # code_hash -> (role, ws)
 LOCK = asyncio.Lock()
+
 
 def use_production_logger():
     """
@@ -39,6 +39,7 @@ def use_production_logger():
     relay_logger.addHandler(handler)
     relay_logger.setLevel(logging.INFO)
 
+
 async def _pipe(a: ServerConnection, b: ServerConnection) -> None:
     """
     Pipe data bidirectionally between two WebSocket connections until one closes.
@@ -55,6 +56,7 @@ async def _pipe(a: ServerConnection, b: ServerConnection) -> None:
         except Exception:
             pass
 
+
 async def _handle(ws: ServerConnection) -> None:
     """
     Handle a single WebSocket connection: validate hello, pair with peer, and pipe data.
@@ -66,17 +68,21 @@ async def _handle(ws: ServerConnection) -> None:
     except Exception:
         return
     if not isinstance(raw, str):
-        await ws.close(code=1002, reason="First frame must be hello text"); return
+        await ws.close(code=1002, reason="First frame must be hello text")
+        return
     try:
         hello = json.loads(raw)
     except Exception:
-        await ws.close(code=1002, reason="Bad hello json"); return
+        await ws.close(code=1002, reason="Bad hello json")
+        return
     if hello.get("type") != "hello":
-        await ws.close(code=1002, reason="First frame must be hello"); return
+        await ws.close(code=1002, reason="First frame must be hello")
+        return
     code_hash = hello.get("code_hash_hex")
     role = hello.get("role")
-    if not code_hash or role not in {"sender","receiver"}:
-        await ws.close(code=1002, reason="Bad hello"); return
+    if not code_hash or role not in {"sender", "receiver"}:
+        await ws.close(code=1002, reason="Bad hello")
+        return
 
     # 2) Pair by code_hash (exactly one sender + one receiver)
     peer: Optional[ServerConnection] = None
@@ -97,7 +103,7 @@ async def _handle(ws: ServerConnection) -> None:
             await ws.wait_closed()
         finally:
             async with LOCK:
-                if WAITING.get(code_hash, (None,None))[1] is ws:
+                if WAITING.get(code_hash, (None, None))[1] is ws:
                     WAITING.pop(code_hash, None)
         return
 
@@ -119,6 +125,7 @@ async def _handle(ws: ServerConnection) -> None:
     for t in pending2:
         if t is not sleep_task:
             t.cancel()
+
 
 async def run_relay(host: str, port: int,
                     use_tls: bool = True,

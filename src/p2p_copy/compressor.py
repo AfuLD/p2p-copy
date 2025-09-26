@@ -13,6 +13,7 @@ class CompressMode(str, Enum):
     on = "on"
     off = "off"
 
+
 class Compressor:
     """
     Handle compression and decompression of chunks using Zstandard.
@@ -59,7 +60,6 @@ class Compressor:
                 self.use_compression = compression_ratio < 0.95  # Enable if compressed size < 95% of original
                 self.compression_type = "zstd" if self.use_compression else "none"
                 return compressed if self.use_compression else first_chunk
-
 
     def compress(self, chunk: bytes) -> bytes:
         """

@@ -9,10 +9,12 @@ from p2p_copy import CompressMode
 from p2p_copy_server import run_relay
 
 import sys
-if hasattr(sys.stdout, "reconfigure"): # on Python >= 3.7
+
+if hasattr(sys.stdout, "reconfigure"):  # on Python >= 3.7
     sys.stdout.reconfigure(line_buffering=True)
 
 app = typer.Typer(add_completion=False, help="p2p-copy — chunked file transfer over WSS.")
+
 
 @app.command(help="""
 Send one or more files or directories to a paired receiver via the relay server.
@@ -41,13 +43,14 @@ Send multiple specified files with encryption:
 $ p2p-copy send ws://localhost:8765 mycode *.txt --encrypt
 """)
 def send(
-    server: str = typer.Argument(..., help="Relay WS(S) URL, e.g. wss://relay.example:443 or ws://localhost:8765"),
-    code: str = typer.Argument(..., help="Shared passphrase/code"),
-    files: List[str] = typer.Argument(..., help="Files and/or directories to send"),
-    encrypt: bool = typer.Option(False, help="Enable end-to-end encryption"),
-    compress: CompressMode = typer.Option(CompressMode.auto, help="Enable Compression"),
-    resume: bool = typer.Option(False, help="resume previous copy progress, skips existing and completes partial files"),
-    ):
+        server: str = typer.Argument(..., help="Relay WS(S) URL, e.g. wss://relay.example:443 or ws://localhost:8765"),
+        code: str = typer.Argument(..., help="Shared passphrase/code"),
+        files: List[str] = typer.Argument(..., help="Files and/or directories to send"),
+        encrypt: bool = typer.Option(False, help="Enable end-to-end encryption"),
+        compress: CompressMode = typer.Option(CompressMode.auto, help="Enable Compression"),
+        resume: bool = typer.Option(False,
+                                    help="resume previous copy progress, skips existing and completes partial files"),
+):
     """
     Send one or more files or directories to a paired receiver via the relay server.
 
@@ -81,6 +84,7 @@ def send(
         compress=compress, resume=resume,
     )))
 
+
 @app.command(help="""
 Receive files from a paired sender via the relay server and write to the output directory.
 
@@ -102,11 +106,11 @@ Receive to a specific directory with encryption:
 $ p2p-copy receive ws://localhost:8765 mycode --out /tmp/downloads --encrypt
 """)
 def receive(
-    server: str = typer.Argument(..., help="Relay WS(S) URL, e.g. wss://relay.example:443 or ws://localhost:8765"),
-    code: str = typer.Argument(..., help="Shared passphrase/code"),
-    encrypt: bool = typer.Option(False, help="Enable end-to-end encryption"),
-    out: Optional[str] = typer.Option(".", "--out", "-o", help="Output directory"),
-    ):
+        server: str = typer.Argument(..., help="Relay WS(S) URL, e.g. wss://relay.example:443 or ws://localhost:8765"),
+        code: str = typer.Argument(..., help="Shared passphrase/code"),
+        encrypt: bool = typer.Option(False, help="Enable end-to-end encryption"),
+        out: Optional[str] = typer.Option(".", "--out", "-o", help="Output directory"),
+):
     """
     Receive files from a sender via the relay server.
 
@@ -135,6 +139,7 @@ def receive(
         code=code, server=server, encrypt=encrypt, out=out,
     )))
 
+
 @app.command("run-relay-server", help="""
 Run the WebSocket relay server for pairing and forwarding client connections.
 
@@ -156,12 +161,12 @@ Run with TLS on a public host:
 $ p2p-copy run-relay-server 0.0.0.0 443 --tls --certfile cert.pem --keyfile key.pem
 """)
 def run_relay_server(
-    server_host: str = typer.Argument(..., help="Host/Interface to bind"),
-    server_port: int = typer.Argument(..., help="Port to bind"),
-    tls: bool = typer.Option(True, "--tls/--no-tls", help="Enable WSS/TLS"),
-    certfile: Optional[str] = typer.Option(None, help="TLS cert file (PEM)"),
-    keyfile: Optional[str] = typer.Option(None, help="TLS key file (PEM)"),
-    ):
+        server_host: str = typer.Argument(..., help="Host/Interface to bind"),
+        server_port: int = typer.Argument(..., help="Port to bind"),
+        tls: bool = typer.Option(True, "--tls/--no-tls", help="Enable WSS/TLS"),
+        certfile: Optional[str] = typer.Option(None, help="TLS cert file (PEM)"),
+        keyfile: Optional[str] = typer.Option(None, help="TLS key file (PEM)"),
+):
     """
     Run the relay server.
 
@@ -198,6 +203,7 @@ def run_relay_server(
         ))
     except KeyboardInterrupt:
         pass
+
 
 if __name__ == "__main__":
     app()
