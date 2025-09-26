@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import collections
 from pathlib import Path
 from typing import Iterator, Tuple, BinaryIO, List, AsyncIterable
 

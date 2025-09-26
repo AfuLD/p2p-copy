@@ -1,9 +1,7 @@
-import asyncio
 from enum import Enum
-import zstandard as zstd
-from typing import Optional, BinaryIO
+from typing import Optional
 
-from .io_utils import CHUNK_SIZE
+import zstandard as zstd
 
 
 class CompressMode(str, Enum):
