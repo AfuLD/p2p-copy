@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "p2p-copy"
 version = "0.1.0a0"
-description = "P2P-style file transfer over WSS with chunk streaming (lean skeleton)."
+description = "P2P-style file transfer over WSS with chunk streaming."
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
@@ -25,11 +25,11 @@ dependencies = [
   "typer>=0.12",
   "websockets>=15.0.1",
   "rich>=13.7",
+  "zstandard>=0.22"
 ]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.4.1"]
-compression = ["zstandard>=0.22"]
 security = [
   "cryptography>=42.0",
   "argon2_cffi>=21.1"]

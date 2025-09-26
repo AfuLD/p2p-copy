@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import collections
 from pathlib import Path
-from typing import Iterable, Iterator, Tuple, BinaryIO, List
+from typing import Iterator, Tuple, BinaryIO, List
 
 from p2p_copy.security import ChainedChecksum
 
@@ -52,7 +52,7 @@ def iter_manifest_entries(paths: List[str]) -> Iterator[Tuple[Path, Path, int]]:
 
     Parameters
     ----------
-    paths : Iterable[str]
+    paths : List[str]
         An iterable of strings representing file or directory paths.
 
     Yields
