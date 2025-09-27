@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - Python 3.10 or higher. (Older version will probably but not definitely work as well.) 
-- For encryption support: Install the `security` extras (requires `cryptography` and `argon2-cffi`).
+- For E2E-encryption support: Install the `security` extras on client machines.
 
 ## Install from PyPI
 
@@ -29,9 +29,8 @@ This includes testing and documentation tools.
 
 ## Relay Server Dependencies
 
-For running the relay with TLS either:
-- Generate self-signed certs (dev)
-- Have or acquire trusted certs (e.g. with Let's Encrypt) (prod).
+For running the relay with TLS:
+- Have or acquire trusted certs (e.g. with Let's Encrypt).
 
 
 See [Relay Setup](relay.md) for details.
