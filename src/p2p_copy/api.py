@@ -261,9 +261,6 @@ async def receive(server: str, code: str,
         return 4
 
     async def handle_enc_manifest(o: dict):
-        if not encrypt:
-            print("[p2p_copy] receive(): unexpected enc_manifest without encryption")
-            raise ValueError("Unexpected encrypted manifest")
         try:
             nonce_hex = o.get("nonce")
             secure.nonce_hasher.next_hash(bytes.fromhex(nonce_hex))
@@ -276,29 +273,29 @@ async def receive(server: str, code: str,
 
     async def handle_manifest(o: dict):
         resume = o.get("resume", False)
-        entries = o.get("entries", [])
-        reply_entries: List[ReceiverManifestEntry] = []
-
-        for e in entries:
-            try:
-                rel = Path(e["path"])
-                local_path = (out_dir / rel).resolve()
-                if local_path.is_file():
-                    local_size = local_path.stat().st_size
-                    if local_size > 0:
-                        hashed, chain_b = await compute_chain_up_to(local_path)
-                        resume_known[rel.as_posix()] = (hashed, chain_b)
-                        reply_entries.append(
-                            ReceiverManifestEntry(
-                                path=rel.as_posix(),
-                                size=hashed,
-                                chain_hex=chain_b.hex(),
-                            )
-                        )
-            except Exception:
-                continue  # Skip bad entries
-
         if resume:
+            entries = o.get("entries", [])
+            reply_entries: List[ReceiverManifestEntry] = []
+
+            for e in entries:
+                try:
+                    rel = Path(e["path"])
+                    local_path = (out_dir / rel).resolve()
+                    if local_path.is_file():
+                        local_size = local_path.stat().st_size
+                        if local_size > 0:
+                            hashed, chain_b = await compute_chain_up_to(local_path)
+                            resume_known[rel.as_posix()] = (hashed, chain_b)
+                            reply_entries.append(
+                                ReceiverManifestEntry(
+                                    path=rel.as_posix(),
+                                    size=hashed,
+                                    chain_hex=chain_b.hex(),
+                                )
+                            )
+                except Exception:
+                    continue  # Skip bad entries
+
             if encrypt:
                 clear = ReceiverManifest(type="receiver_manifest", entries=reply_entries).to_json().encode()
                 hidden = secure.encrypt_chunk(clear)
@@ -311,8 +308,6 @@ async def receive(server: str, code: str,
                 await ws.send(ReceiverManifest(type="receiver_manifest", entries=reply_entries).to_json())
 
     async def handle_enc_file(o: dict):
-        if not encrypt:
-            raise ValueError("Unexpected encrypted file header")
         try:
             hidden = bytes.fromhex(o["hidden_file"])
             file_str = secure.decrypt_chunk(hidden).decode()
@@ -362,7 +357,7 @@ async def receive(server: str, code: str,
         cur_fp.close()
         cur_fp = None
 
-    async def handle_chunk(frame: bytes):
+    async def handle_chunk():
         nonlocal bytes_written, cur_seq_expected
         if cur_fp is None:
             raise ValueError("Unexpected binary data without open file")
@@ -384,29 +379,29 @@ async def receive(server: str, code: str,
         raise StopAsyncIteration  # Break the loop cleanly
 
     # Frame type dispatcher
-    async def dispatch_frame(frame):
+    async def dispatch_frame():
         if isinstance(frame, (bytes, bytearray)):
-            await handle_chunk(frame)
-            return
+            await handle_chunk()
 
-        if not isinstance(frame, str):
+        elif not isinstance(frame, str):
             raise ValueError("Unknown frame type")
 
-        o = loads(frame)
-        t = o.get("type")
+        else:
+            o = loads(frame)
+            t = o.get("type")
 
-        handlers = {
-            "enc_manifest": handle_enc_manifest,
-            "manifest": handle_manifest,
-            "enc_file": handle_enc_file,
-            "file": handle_file,
-            "file_eof": handle_file_eof,
-            "eof": handle_eof,
-        }
-        handler = handlers.get(t)
-        if handler is None:
-            raise ValueError(f"Unexpected control: {o}")
-        await handler(o)
+            handlers = {
+                "enc_manifest": handle_enc_manifest if encrypt else None,
+                "manifest": handle_manifest if not encrypt else None,
+                "enc_file": handle_enc_file if encrypt else None,
+                "file": handle_file if not encrypt else None,
+                "file_eof": handle_file_eof,
+                "eof": handle_eof,
+            }
+            handler = handlers.get(t)
+            if handler is None:
+                raise ValueError(f"Unexpected control: {o}")
+            await handler(o)
 
     # End of Closures
 
@@ -429,7 +424,7 @@ async def receive(server: str, code: str,
         await ws.send(hello)
         try:
             async for frame in ws:
-                await dispatch_frame(frame)
+                await dispatch_frame()
         except StopAsyncIteration:
             pass  # Normal EOF
         except ValueError as e:
