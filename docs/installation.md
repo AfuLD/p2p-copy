@@ -2,8 +2,21 @@
 
 ## Prerequisites
 
-- Python 3.10 or higher. (Older version will probably but not definitely work as well.) 
+- Python 3.10 or higher. (Older version will probably but not definitely work as well.)
+- This project contains additional optional features.  
+- Using an installation command without [...] will not install them.
 - For E2E-encryption support: Install the `security` extras on client machines.
+
+
+## General installation info
+Create a virtual environment (if not already created):
+```bash
+python -m venv .venv
+```
+Activate the venv before installation and before use.
+```bash
+source .venv/bin/activate
+```
 
 ## Install from PyPI
 
