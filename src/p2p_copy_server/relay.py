@@ -165,5 +165,5 @@ async def run_relay(host: str, port: int,
     if host != "localhost":
         use_production_logger()
 
-    async with serve(_handle, host, port, max_size=None, ssl=ssl_ctx, compression=None):
+    async with serve(_handle, host, port, max_size=2**21, ssl=ssl_ctx, compression=None):
         await asyncio.Future()  # run forever

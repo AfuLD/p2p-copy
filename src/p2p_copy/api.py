@@ -202,7 +202,7 @@ async def send(server: str, code: str, files: List[str],
         manifest = secure.build_encrypted_manifest(manifest)
 
     # Connect to relay (disable WebSocket internal compression)
-    async with connect(server, max_size=None, compression=None) as ws:
+    async with connect(server, max_size=2**21, compression=None) as ws:
         # Stores info returned by the sender about what files are already present
         resume_map: Dict[str, Tuple[int, bytes]] = {}
         # Attempt to connect and optionally exchange info with receiver
@@ -420,7 +420,7 @@ async def receive(server: str, code: str,
     compressor = Compressor()
     resume_known: Dict[str, Tuple[int, bytes]] = {}
 
-    async with connect(server, max_size=None, compression=None) as ws:
+    async with connect(server, max_size=2**21, compression=None) as ws:
         await ws.send(hello)
         try:
             async for frame in ws:
