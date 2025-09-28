@@ -1,6 +1,7 @@
 # Security
 
 p2p-copy incorporates security measures for pairing, integrity, and optional confidentiality. The design is suitable for HPC and other restricted networks. Depending on which features are used, users can decide whether to elevate security or to maximize performance. For features overview, see [Features](./features.md). For installation with security extras, see [Installation](./installation.md).
+>Note: open [Security in Pages](https://afuld.github.io/p2p-copy/security/) or [Security in docs](docs/security.md) for relative links to work. 
 
 ## Core Security Elements
 
