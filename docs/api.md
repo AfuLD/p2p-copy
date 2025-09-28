@@ -2,34 +2,42 @@
 
 This section documents the public API of `p2p_copy`. For module structure, see [Module Layout](./layout.md). Generated from source code docstrings.
 
-## Core API Functions
+
+&nbsp;
 
 ::: p2p_copy.api
 
 
-## Security
+
+&nbsp;
 
 ::: p2p_copy.security
 
 
-## Compression
+
+
+&nbsp;
 
 ::: p2p_copy.compressor
 
 
-## Protocol
+
+&nbsp;
 
 ::: p2p_copy.protocol
 
 
-## IO Utilities
+
+&nbsp;
 
 ::: p2p_copy.io_utils
 
 
-## Relay (p2p_copy_server)
+
+&nbsp;
 
 ::: p2p_copy_server
 
+&nbsp;
 
 For api usage examples, see [APIExamples](./examples.md). For feature details, see [Features](./features.md).
