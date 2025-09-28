@@ -1,3 +1,6 @@
+>Note: Complete examples in python files can be found in /examples. Tests can be found in /test. 
+
+
 ```python
 # import the needed functions from the api, maybe alias them
 from p2p_copy import send as api_send, receive as api_receive
