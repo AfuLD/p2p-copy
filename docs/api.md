@@ -36,4 +36,4 @@ This section documents the public API of `p2p_copy`. For module structure, see [
 
 ::: p2p_copy_server.run_relay
 
-For usage examples, see [Usage](./usage.md). For feature details, see [Features](./features.md).
+For api usage examples, see [Examples](../examples). For feature details, see [Features](./features.md).

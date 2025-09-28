@@ -32,8 +32,9 @@ p2p-copy provides file transfer via WebSockets, pairing one sender and one recei
 
 ## Limitations
 
-- Single pair per code; no concurrent sessions.
-- No relay storage; large transfers depend on stable connections.
+- server performance limits the amount of concurrent transfers
+- Single pair per code; no broadcasting.
+- No relay storage; transfers depend on both clients to stay connected.
 - Per-file (not per-chunk) compression decisions.
 
 ## Internals

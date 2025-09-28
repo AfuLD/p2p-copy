@@ -123,3 +123,4 @@ The receiver saves `sample.txt` in `./downloads`. Both clients exit on completio
 - Pairing occurs via code hash. Start the relay first; sender and receiver order is flexible.
 - Errors result in non-zero exit codes (e.g., timeouts, mismatches).
 - For security considerations, see [Security](./security.md). For issues, see [Troubleshooting](./troubleshooting.md).
+- For api usage and implementation into python code see [API](./api.md) and [Examples](../examples). 
