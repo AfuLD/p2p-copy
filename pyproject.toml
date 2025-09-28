@@ -24,12 +24,16 @@ classifiers = [
 dependencies = [
   "typer>=0.12",
   "websockets>=15.0.1",
-  "rich>=13.7",
   "zstandard>=0.22"
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.4.1"]
+dev = [
+  "pytest>=8.4.1",
+  "mkdocs>=1.6.1",
+  "mkdocs-material>=9.6.20",
+  "mkdocstrings-python>=1.18.2"
+]
 security = [
   "cryptography>=42.0",
   "argon2_cffi>=21.1"]

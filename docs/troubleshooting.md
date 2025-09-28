@@ -35,6 +35,6 @@ This page addresses common issues with p2p-copy. For setup, see [Installation](.
 
 - Test locally with `--no-tls` and on user-space ports.
 - If using a relay service check the system logs (systemd status).
-- If issues persist, review code in [Module Layout](./layout.md) or report on GitHub.
+- If issues persist, review code or report on GitHub.
 
 For security-related troubleshooting, see [Security](./security.md). For features, see [Features](./features.md).

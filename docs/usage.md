@@ -3,8 +3,17 @@
 ## Overview
 
 p2p-copy facilitates file transfers via a WebSocket relay. The workflow involves starting a relay server, then running sender and receiver clients with a shared code for pairing. The relay forwards data without storage, supporting multiple client pairs.
+                
+For protocol details, see [Features](./features.md). For API usage in scripts, see [API](./api.md) and [APIExamples](./examples.md).
 
-For protocol details, see [Features](./features.md). For API usage in scripts, see [API](./api.md).
+
+## Get usage info in terminal
+```bash
+p2p-copy --help
+p2p-copy send --help
+p2p-copy receive --help
+p2p-copy run-relay-server --help
+```
 
 ## CLI Commands
 
@@ -123,4 +132,3 @@ The receiver saves `sample.txt` in `./downloads`. Both clients exit on completio
 - Pairing occurs via code hash. Start the relay first; sender and receiver order is flexible.
 - Errors result in non-zero exit codes (e.g., timeouts, mismatches).
 - For security considerations, see [Security](./security.md). For issues, see [Troubleshooting](./troubleshooting.md).
-- For api usage and implementation into python code see [API](./api.md) and [Examples](../examples). 

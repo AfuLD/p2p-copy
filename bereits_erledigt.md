@@ -92,3 +92,9 @@
 
 * **Verwendungsbeispiele:** Detaillierte Anleitungen und code Beispiele im Ordner `examples` erstellt
 * **Verwendung von Teilfunktionen (Closures):** Aufteilung von api code für bessere Lesbarkeit und klare Schritte.
+
+
+## Phase 8 Doku, Benchmarks, Release
+
+* **Doc-Strings**: in NumPy style formuliert
+* **Dokumentation**: MkDocs Dateien erstellt 

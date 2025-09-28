@@ -13,8 +13,9 @@ nav:
   - Home: index.md
   - Installation: installation.md
   - Usage: usage.md
-  - API: api.md
   - Module Layout: layout.md
+  - API: api.md
+  - APIExamples: examples.md
   - Relay Setup: relay.md
   - Features: features.md
   - Security: security.md
@@ -25,8 +26,11 @@ plugins:
       handlers:
         python:
           options:
-            show_source: true
-            show_signature_annotations: true
+            show_root_heading: true        # show the object's name as a heading
+            show_root_full_path: false     # show just "send", not the full path
+            show_signature: true           # include the call signature
+            separate_signature: true       # put signature in its own code block
+            docstring_style: numpy
             members_order: source
   - search
 

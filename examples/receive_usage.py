@@ -2,7 +2,7 @@ import asyncio
 from pathlib import Path
 
 # Import the needed functions from the api, maybe alias them
-from p2p_copy import  receive as api_receive
+from p2p_copy import receive as api_receive
 
 def usage_of_receive():
     # If TLS is used the protocol/url-prefix changes from ws to wss

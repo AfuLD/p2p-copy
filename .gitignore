@@ -9,4 +9,5 @@ venv/
 .DS_Store
 .idea/
 .vscode/
-test_resources
+test_resources/
+alt/
