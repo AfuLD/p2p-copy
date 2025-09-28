@@ -1,16 +1,19 @@
 # Relay Setup
 
-The relay server acts as a lightweight middleman to pair senders and receivers without storing data. It binds to a host/port, supports TLS, and uses a shared code hash for matching (one sender + one receiver per code).
+The relay server pairs senders and receivers using their shared code hash, forwarding data without storage. It supports TLS and binds to a specified host and port. One sender and one receiver are allowed per code.
+
+For security details, see [Security](./security.md). For CLI usage, see [Usage](./usage.md).
 
 ## Quick Start
 
-Run locally for development:
+For development (no TLS):
+
 ```bash
 p2p-copy run-relay-server localhost 8765 --no-tls
 ```
 
 For production (TLS recommended):
-1. Already have or generate trusted TLS certs (e.g., via Let's Encrypt).
+1. Already have or generate trusted TLS certificates (e.g., via Let's Encrypt).
 2. Run:
    ```bash
    p2p-copy run-relay-server 0.0.0.0 443 \
@@ -21,38 +24,35 @@ For production (TLS recommended):
 ## Configuration
 
 ### TLS
-- Enabled by default (`--tls`).
+- Enabled by default or explicitly with `--tls`.
 - Requires `--certfile` and `--keyfile` (PEM format).
-- Use certbot to create domain-validated certs:
+- Generate certificates using tools like Certbot:
 
 ```bash
 sudo certbot certonly --standalone -d relay.example.com # --register-unsafely-without-email
 ```
 
--  Set up a crontab for monthly cert renew and restart of the relay app if cert changed:
+- Set up renewal via crontab:
 
 ```bash
-sudo crontab -e  # opens a file in editor
-#add this to it without "#": 
-# 0 4 * * * certbot renew --deploy-hook "systemctl reload run-relay-server.service" 
+sudo crontab -e
+# Add: 0 4 * * * certbot renew --deploy-hook "systemctl reload run-relay-server.service"
 ```
 
-### Port privileges
-- to use port 443 you need elevated privileges
-- easy solution: run as root 
-- advanced cleaner solution: give limited precise privileges
+### Port Privileges
+- Ports below 1024 (e.g., 443) require elevated privileges.
+- Run as root or use capabilities (e.g., `setcap` for specific permissions).
+- Using port forwarding or a reverse proxy might also be elegant solutions. 
 
 ### Logging
-- Concise logger suppresses long handshake failure tracebacks.
-- Handshake failures happen when non-user packages arrive at 443
-- Logger prints to std.out or to log file if redirected
-- For testing on localhost no logs will be printed
+- Logs to stdout (or a file if redirected).
+- Suppresses verbose handshake errors caused by non-WebSocket traffic.
+- Minimal output on localhost for testing.
 
 ### Scaling
-- CPU usage is low since relay does nothing but network I/O
-- Memory usage is low since files are streamed in chunks.
-- No storage usage, no persistence; restarts clear active pairings.
-- Performance usually is limited by network bandwidth
+- Low CPU and memory usage due to I/O-focused design.
+- No persistence; restarts clear pairings.
+- Performance limited by network bandwidth.
 
 ## Deployment
 
@@ -67,7 +67,6 @@ After=network.target
 
 [Service]
 Type=simple
-# no need to specify a non-root User= line when running as root
 WorkingDirectory=/root
 StandardOutput=append:/root/run-relay-server.log
 StandardError=inherit
@@ -79,15 +78,15 @@ RestartSec=5s
 WantedBy=multi-user.target
 ```
 
-Enable/start:
+Enable and start:
+
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl enable --now run-relay-server.service
 ```
 
 ### Firewall
-- Open port 443 (or whichever is actually used)
-- No other ports needed.
+- Open the bound port (e.g., 443).
+- No additional ports required.
 
-
-For troubleshooting, see [Troubleshooting](troubleshooting.md).
+For common issues, see [Troubleshooting](./troubleshooting.md). For features, see [Features](./features.md).

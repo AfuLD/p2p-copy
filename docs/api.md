@@ -1,6 +1,6 @@
 # API Reference
 
-This section documents the public API of `p2p_copy`. Generated from source code docstrings.
+This section documents the public API of `p2p_copy`. For module structure, see [Module Layout](./layout.md). Generated from source code docstrings.
 
 ## Core Functions
 
@@ -35,3 +35,5 @@ This section documents the public API of `p2p_copy`. Generated from source code 
 ## Relay (p2p_copy_server)
 
 ::: p2p_copy_server.run_relay
+
+For usage examples, see [Usage](./usage.md). For feature details, see [Features](./features.md).
