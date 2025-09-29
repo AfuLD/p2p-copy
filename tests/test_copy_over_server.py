@@ -88,7 +88,7 @@ def transfer_timings_for_compression_modes(tmp_path: Path, server_url_without_pr
     server_url = ws_protocol + server_url_without_protocol
 
     # Size large enough to see a difference(~3 MiB)
-    SIZE = 30 * 1024 * 1024
+    SIZE = 3 * 1024 * 1024
 
     comp = _compressible_bytes(SIZE)
     incomp = _incompressible_bytes(SIZE)
