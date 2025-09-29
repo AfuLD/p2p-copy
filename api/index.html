@@ -360,6 +360,30 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#p2p_copy_server" class="md-nav__link">
+    <span class="md-ellipsis">
+      p2p_copy_server
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="p2p_copy_server">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#p2p_copy_server.run_relay" class="md-nav__link">
+    <span class="md-ellipsis">
+      run_relay
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#p2p_copy.api" class="md-nav__link">
     <span class="md-ellipsis">
       api
@@ -730,30 +754,6 @@
   <a href="#p2p_copy.io_utils.ensure_dir" class="md-nav__link">
     <span class="md-ellipsis">
       ensure_dir
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#p2p_copy_server" class="md-nav__link">
-    <span class="md-ellipsis">
-      p2p_copy_server
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="p2p_copy_server">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#p2p_copy_server.run_relay" class="md-nav__link">
-    <span class="md-ellipsis">
-      run_relay
     </span>
   </a>
   
@@ -909,6 +909,30 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#p2p_copy_server" class="md-nav__link">
+    <span class="md-ellipsis">
+      p2p_copy_server
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="p2p_copy_server">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#p2p_copy_server.run_relay" class="md-nav__link">
+    <span class="md-ellipsis">
+      run_relay
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#p2p_copy.api" class="md-nav__link">
     <span class="md-ellipsis">
       api
@@ -1289,30 +1313,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#p2p_copy_server" class="md-nav__link">
-    <span class="md-ellipsis">
-      p2p_copy_server
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="p2p_copy_server">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#p2p_copy_server.run_relay" class="md-nav__link">
-    <span class="md-ellipsis">
-      run_relay
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -1333,7 +1333,7 @@
 
 
 <h1 id="api-reference">API Reference</h1>
-<p>This section documents the public API of <code>p2p_copy</code>. For module structure, see <a href="../layout/">Module Layout</a>. Generated from source code docstrings.</p>
+<p>This section documents the API of <code>p2p_copy</code>. Only the functions run_relay, send and receive are intended for users, others are mainly information for developers. For module structure, see <a href="../layout/">Module Layout</a>. Generated from source code docstrings.</p>
 <p>&nbsp;</p>
 
 
@@ -1341,8 +1341,294 @@
 
 
 
+<h2 id="p2p_copy_server" class="doc doc-heading">
+            <span class="doc doc-object-name doc-module-name">p2p_copy_server</span>
+
+
+</h2>
+
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="p2p_copy_server.run_relay" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">run_relay</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-async"><code>async</code></small>
+  </span>
+
+</h3>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">run_relay</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="n">use_tls</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">certfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">keyfile</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Run the WebSocket relay server for pairing and forwarding client connections.</p>
+<p>This command starts a relay server that listens on the specified host/interface and port,
+optionally secured with TLS (recommended for production). The server pairs
+sender and receiver clients based on matching passphrase hashes, then forwards
+bidirectional data streams without storing content. It handles exactly one
+sender and one receiver per code hash, rejecting duplicates. Use for secure,
+firewall-friendly (port 443) P2P transfers.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>host</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Host to bind to.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>port</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Port to bind to.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>use_tls</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether to use TLS. Default is True.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>certfile</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to TLS certificate file.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>keyfile</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to TLS key file.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="RuntimeError">RuntimeError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If TLS is requested but certfile or keyfile is missing.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="quote">
+              <summary>Source code in <code>src/p2p_copy_server/relay.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">run_relay</span><span class="p">(</span><span class="n">host</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">port</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                    <span class="n">use_tls</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                    <span class="n">certfile</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="n">keyfile</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run the WebSocket relay server for pairing and forwarding client connections.</span>
+
+<span class="sd">    This command starts a relay server that listens on the specified host/interface and port,</span>
+<span class="sd">    optionally secured with TLS (recommended for production). The server pairs</span>
+<span class="sd">    sender and receiver clients based on matching passphrase hashes, then forwards</span>
+<span class="sd">    bidirectional data streams without storing content. It handles exactly one</span>
+<span class="sd">    sender and one receiver per code hash, rejecting duplicates. Use for secure,</span>
+<span class="sd">    firewall-friendly (port 443) P2P transfers.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    host : str</span>
+<span class="sd">        Host to bind to.</span>
+<span class="sd">    port : int</span>
+<span class="sd">        Port to bind to.</span>
+<span class="sd">    use_tls : bool, optional</span>
+<span class="sd">        Whether to use TLS. Default is True.</span>
+<span class="sd">    certfile : str, optional</span>
+<span class="sd">        Path to TLS certificate file.</span>
+<span class="sd">    keyfile : str, optional</span>
+<span class="sd">        Path to TLS key file.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    RuntimeError</span>
+<span class="sd">        If TLS is requested but certfile or keyfile is missing.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ssl_ctx</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">use_tls</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">certfile</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">keyfile</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;TLS requested but certfile/keyfile missing&quot;</span><span class="p">)</span>
+        <span class="n">ssl_ctx</span> <span class="o">=</span> <span class="n">ssl</span><span class="o">.</span><span class="n">SSLContext</span><span class="p">(</span><span class="n">ssl</span><span class="o">.</span><span class="n">PROTOCOL_TLS_SERVER</span><span class="p">)</span>
+        <span class="n">ssl_ctx</span><span class="o">.</span><span class="n">load_cert_chain</span><span class="p">(</span><span class="n">certfile</span><span class="p">,</span> <span class="n">keyfile</span><span class="p">)</span>
+
+    <span class="n">scheme</span> <span class="o">=</span> <span class="s2">&quot;wss&quot;</span> <span class="k">if</span> <span class="n">ssl_ctx</span> <span class="k">else</span> <span class="s2">&quot;ws&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Relay listening on </span><span class="si">{</span><span class="n">scheme</span><span class="si">}</span><span class="s2">://</span><span class="si">{</span><span class="n">host</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">host</span> <span class="o">!=</span> <span class="s2">&quot;localhost&quot;</span><span class="p">:</span>
+        <span class="n">use_production_logger</span><span class="p">()</span>
+
+    <span class="k">async</span> <span class="k">with</span> <span class="n">serve</span><span class="p">(</span><span class="n">_handle</span><span class="p">,</span> <span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="n">max_size</span><span class="o">=</span><span class="mi">2</span><span class="o">**</span><span class="mi">21</span><span class="p">,</span> <span class="n">ssl</span><span class="o">=</span><span class="n">ssl_ctx</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Future</span><span class="p">()</span>  <span class="c1"># run forever</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div><p>&nbsp;</p>
+
+
+<div class="doc doc-object doc-module">
+
+
+
 <h2 id="p2p_copy.api" class="doc doc-heading">
-            <span class="doc doc-object-name doc-module-name">api</span>
+            <span class="doc doc-object-name doc-module-name">p2p_copy.api</span>
 
 
 </h2>
@@ -1386,7 +1672,14 @@
 
     <div class="doc doc-contents ">
 
-        <p>Send files/directories to a receiver via the relay server.</p>
+        <p>Send one or more files or directories to a paired receiver via the relay server.</p>
+<p>This command connects to the specified WebSocket relay server, authenticates using
+the shared passphrase (hashed for pairing), and streams the provided files/directories
+in chunks to the receiver. Supports directories by recursively including all files
+in alphabetical order. Optional end-to-end encryption (AES-GCM) and compression
+(Zstandard, auto-detected per file) can be enabled. If resume is enabled, it
+coordinates with the receiver to skip complete files or append to partial ones
+based on chained checksum verification.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -1733,12 +2026,28 @@ incomplete files based on receiver feedback.</p>
 <span class="normal">216</span>
 <span class="normal">217</span>
 <span class="normal">218</span>
-<span class="normal">219</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">send</span><span class="p">(</span><span class="n">server</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">code</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">files</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+<span class="normal">219</span>
+<span class="normal">220</span>
+<span class="normal">221</span>
+<span class="normal">222</span>
+<span class="normal">223</span>
+<span class="normal">224</span>
+<span class="normal">225</span>
+<span class="normal">226</span>
+<span class="normal">227</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">send</span><span class="p">(</span><span class="n">server</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">code</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">files</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
                <span class="o">*</span><span class="p">,</span> <span class="n">encrypt</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
                <span class="n">compress</span><span class="p">:</span> <span class="n">CompressMode</span> <span class="o">=</span> <span class="n">CompressMode</span><span class="o">.</span><span class="n">auto</span><span class="p">,</span>
                <span class="n">resume</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Send files/directories to a receiver via the relay server.</span>
+<span class="sd">    Send one or more files or directories to a paired receiver via the relay server.</span>
+
+<span class="sd">    This command connects to the specified WebSocket relay server, authenticates using</span>
+<span class="sd">    the shared passphrase (hashed for pairing), and streams the provided files/directories</span>
+<span class="sd">    in chunks to the receiver. Supports directories by recursively including all files</span>
+<span class="sd">    in alphabetical order. Optional end-to-end encryption (AES-GCM) and compression</span>
+<span class="sd">    (Zstandard, auto-detected per file) can be enabled. If resume is enabled, it</span>
+<span class="sd">    coordinates with the receiver to skip complete files or append to partial ones</span>
+<span class="sd">    based on chained checksum verification.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -1954,7 +2263,13 @@ incomplete files based on receiver feedback.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Receive files from a sender via the relay server.</p>
+        <p>Receive files from a paired sender via the relay server and write to the output directory.</p>
+<p>This command connects to the relay server, pairs using the shared passphrase hash,
+and receives a manifest of incoming files/directories. Files are written to the
+output directory, preserving relative paths from the manifest. Supports optional
+end-to-end decryption (matching sender's encryption) and decompression. If the
+sender requests resume, this receiver reports existing file states (via checksums)
+to enable skipping or appending.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -2071,15 +2386,7 @@ Sender needs to use the same setting.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/p2p_copy/api.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">224</span>
-<span class="normal">225</span>
-<span class="normal">226</span>
-<span class="normal">227</span>
-<span class="normal">228</span>
-<span class="normal">229</span>
-<span class="normal">230</span>
-<span class="normal">231</span>
-<span class="normal">232</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">232</span>
 <span class="normal">233</span>
 <span class="normal">234</span>
 <span class="normal">235</span>
@@ -2282,11 +2589,33 @@ Sender needs to use the same setting.</p>
 <span class="normal">432</span>
 <span class="normal">433</span>
 <span class="normal">434</span>
-<span class="normal">435</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">receive</span><span class="p">(</span><span class="n">server</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">code</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="normal">435</span>
+<span class="normal">436</span>
+<span class="normal">437</span>
+<span class="normal">438</span>
+<span class="normal">439</span>
+<span class="normal">440</span>
+<span class="normal">441</span>
+<span class="normal">442</span>
+<span class="normal">443</span>
+<span class="normal">444</span>
+<span class="normal">445</span>
+<span class="normal">446</span>
+<span class="normal">447</span>
+<span class="normal">448</span>
+<span class="normal">449</span>
+<span class="normal">450</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">receive</span><span class="p">(</span><span class="n">server</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">code</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
                   <span class="o">*</span><span class="p">,</span> <span class="n">encrypt</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
                   <span class="n">out</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Receive files from a sender via the relay server.</span>
+<span class="sd">    Receive files from a paired sender via the relay server and write to the output directory.</span>
+
+<span class="sd">    This command connects to the relay server, pairs using the shared passphrase hash,</span>
+<span class="sd">    and receives a manifest of incoming files/directories. Files are written to the</span>
+<span class="sd">    output directory, preserving relative paths from the manifest. Supports optional</span>
+<span class="sd">    end-to-end decryption (matching sender&#39;s encryption) and decompression. If the</span>
+<span class="sd">    sender requests resume, this receiver reports existing file states (via checksums)</span>
+<span class="sd">    to enable skipping or appending.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -2514,7 +2843,7 @@ Sender needs to use the same setting.</p>
 
 
 <h2 id="p2p_copy.security" class="doc doc-heading">
-            <span class="doc doc-object-name doc-module-name">security</span>
+            <span class="doc doc-object-name doc-module-name">p2p_copy.security</span>
 
 
 </h2>
@@ -3437,7 +3766,7 @@ Sender needs to use the same setting.</p>
         <span class="kn">from</span><span class="w"> </span><span class="nn">cryptography.hazmat.primitives.ciphers.aead</span><span class="w"> </span><span class="kn">import</span> <span class="n">AESGCM</span>
     <span class="k">except</span> <span class="ne">ModuleNotFoundError</span> <span class="k">as</span> <span class="n">E</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ModuleNotFoundError</span><span class="p">(</span>
-            <span class="n">E</span><span class="o">.</span><span class="n">msg</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">To use encryption optional security libs are needed (pip install &quot;.[security]&quot;)&#39;</span><span class="p">)</span>
+            <span class="n">E</span><span class="o">.</span><span class="n">msg</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">To use encryption optional security libs are needed (pip install p2p-copy[security])&#39;</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3458,7 +3787,7 @@ Sender needs to use the same setting.</p>
 
 
 <h2 id="p2p_copy.compressor" class="doc doc-heading">
-            <span class="doc doc-object-name doc-module-name">compressor</span>
+            <span class="doc doc-object-name doc-module-name">p2p_copy.compressor</span>
 
 
 </h2>
@@ -4277,7 +4606,7 @@ Sender needs to use the same setting.</p>
 
 
 <h2 id="p2p_copy.protocol" class="doc doc-heading">
-            <span class="doc doc-object-name doc-module-name">protocol</span>
+            <span class="doc doc-object-name doc-module-name">p2p_copy.protocol</span>
 
 
 </h2>
@@ -6184,7 +6513,7 @@ Must be shared with receiver so it can decrypt accordingly.</p>
 
 
 <h2 id="p2p_copy.io_utils" class="doc doc-heading">
-            <span class="doc doc-object-name doc-module-name">io_utils</span>
+            <span class="doc doc-object-name doc-module-name">p2p_copy.io_utils</span>
 
 
 </h2>
@@ -6764,272 +7093,6 @@ Must be shared with receiver so it can decrypt accordingly.</p>
 <span class="sd">        The path to ensure is a directory.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</code></pre></div></td></tr></table></div>
-            </details>
-    </div>
-
-</div>
-
-
-
-  </div>
-
-    </div>
-
-</div><p>&nbsp;</p>
-
-
-<div class="doc doc-object doc-module">
-
-
-
-<h2 id="p2p_copy_server" class="doc doc-heading">
-            <span class="doc doc-object-name doc-module-name">p2p_copy_server</span>
-
-
-</h2>
-
-    <div class="doc doc-contents first">
-
-
-
-
-
-
-
-
-
-
-  <div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-<div class="doc doc-object doc-function">
-
-
-<h3 id="p2p_copy_server.run_relay" class="doc doc-heading">
-            <span class="doc doc-object-name doc-function-name">run_relay</span>
-
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-async"><code>async</code></small>
-  </span>
-
-</h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">run_relay</span><span class="p">(</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="n">use_tls</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">certfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">keyfile</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
-</code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Run the WebSocket relay server, optionally with TLS.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>host</code>
-            </td>
-            <td>
-                  <code><span title="str">str</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Host to bind to.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>port</code>
-            </td>
-            <td>
-                  <code><span title="int">int</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Port to bind to.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>use_tls</code>
-            </td>
-            <td>
-                  <code><span title="bool">bool</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Whether to use TLS. Default is True.</p>
-              </div>
-            </td>
-            <td>
-                  <code>True</code>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>certfile</code>
-            </td>
-            <td>
-                  <code><span title="str">str</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Path to TLS certificate file.</p>
-              </div>
-            </td>
-            <td>
-                  <code>None</code>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>keyfile</code>
-            </td>
-            <td>
-                  <code><span title="str">str</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Path to TLS key file.</p>
-              </div>
-            </td>
-            <td>
-                  <code>None</code>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<p><span class="doc-section-title">Raises:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="RuntimeError">RuntimeError</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>If TLS is requested but certfile or keyfile is missing.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-            <details class="quote">
-              <summary>Source code in <code>src/p2p_copy_server/relay.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">130</span>
-<span class="normal">131</span>
-<span class="normal">132</span>
-<span class="normal">133</span>
-<span class="normal">134</span>
-<span class="normal">135</span>
-<span class="normal">136</span>
-<span class="normal">137</span>
-<span class="normal">138</span>
-<span class="normal">139</span>
-<span class="normal">140</span>
-<span class="normal">141</span>
-<span class="normal">142</span>
-<span class="normal">143</span>
-<span class="normal">144</span>
-<span class="normal">145</span>
-<span class="normal">146</span>
-<span class="normal">147</span>
-<span class="normal">148</span>
-<span class="normal">149</span>
-<span class="normal">150</span>
-<span class="normal">151</span>
-<span class="normal">152</span>
-<span class="normal">153</span>
-<span class="normal">154</span>
-<span class="normal">155</span>
-<span class="normal">156</span>
-<span class="normal">157</span>
-<span class="normal">158</span>
-<span class="normal">159</span>
-<span class="normal">160</span>
-<span class="normal">161</span>
-<span class="normal">162</span>
-<span class="normal">163</span>
-<span class="normal">164</span>
-<span class="normal">165</span>
-<span class="normal">166</span>
-<span class="normal">167</span>
-<span class="normal">168</span>
-<span class="normal">169</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">run_relay</span><span class="p">(</span><span class="n">host</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">port</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-                    <span class="n">use_tls</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-                    <span class="n">certfile</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-                    <span class="n">keyfile</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Run the WebSocket relay server, optionally with TLS.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    host : str</span>
-<span class="sd">        Host to bind to.</span>
-<span class="sd">    port : int</span>
-<span class="sd">        Port to bind to.</span>
-<span class="sd">    use_tls : bool, optional</span>
-<span class="sd">        Whether to use TLS. Default is True.</span>
-<span class="sd">    certfile : str, optional</span>
-<span class="sd">        Path to TLS certificate file.</span>
-<span class="sd">    keyfile : str, optional</span>
-<span class="sd">        Path to TLS key file.</span>
-
-<span class="sd">    Raises</span>
-<span class="sd">    ------</span>
-<span class="sd">    RuntimeError</span>
-<span class="sd">        If TLS is requested but certfile or keyfile is missing.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">ssl_ctx</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="k">if</span> <span class="n">use_tls</span><span class="p">:</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">certfile</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">keyfile</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;TLS requested but certfile/keyfile missing&quot;</span><span class="p">)</span>
-        <span class="n">ssl_ctx</span> <span class="o">=</span> <span class="n">ssl</span><span class="o">.</span><span class="n">SSLContext</span><span class="p">(</span><span class="n">ssl</span><span class="o">.</span><span class="n">PROTOCOL_TLS_SERVER</span><span class="p">)</span>
-        <span class="n">ssl_ctx</span><span class="o">.</span><span class="n">load_cert_chain</span><span class="p">(</span><span class="n">certfile</span><span class="p">,</span> <span class="n">keyfile</span><span class="p">)</span>
-
-    <span class="n">scheme</span> <span class="o">=</span> <span class="s2">&quot;wss&quot;</span> <span class="k">if</span> <span class="n">ssl_ctx</span> <span class="k">else</span> <span class="s2">&quot;ws&quot;</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Relay listening on </span><span class="si">{</span><span class="n">scheme</span><span class="si">}</span><span class="s2">://</span><span class="si">{</span><span class="n">host</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">host</span> <span class="o">!=</span> <span class="s2">&quot;localhost&quot;</span><span class="p">:</span>
-        <span class="n">use_production_logger</span><span class="p">()</span>
-
-    <span class="k">async</span> <span class="k">with</span> <span class="n">serve</span><span class="p">(</span><span class="n">_handle</span><span class="p">,</span> <span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="n">max_size</span><span class="o">=</span><span class="mi">2</span><span class="o">**</span><span class="mi">21</span><span class="p">,</span> <span class="n">ssl</span><span class="o">=</span><span class="n">ssl_ctx</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Future</span><span class="p">()</span>  <span class="c1"># run forever</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
