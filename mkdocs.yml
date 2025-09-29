@@ -27,7 +27,7 @@ plugins:
         python:
           options:
             show_root_heading: true        # show the object's name as a heading
-            show_root_full_path: false     # show just "send", not the full path
+            show_root_full_path: true      # show the full path
             show_signature: true           # include the call signature
             separate_signature: true       # put signature in its own code block
             docstring_style: numpy

@@ -132,7 +132,14 @@ async def run_relay(host: str, port: int,
                     certfile: Optional[str] = None,
                     keyfile: Optional[str] = None) -> None:
     """
-    Run the WebSocket relay server, optionally with TLS.
+    Run the WebSocket relay server for pairing and forwarding client connections.
+
+    This command starts a relay server that listens on the specified host/interface and port,
+    optionally secured with TLS (recommended for production). The server pairs
+    sender and receiver clients based on matching passphrase hashes, then forwards
+    bidirectional data streams without storing content. It handles exactly one
+    sender and one receiver per code hash, rejecting duplicates. Use for secure,
+    firewall-friendly (port 443) P2P transfers.
 
     Parameters
     ----------

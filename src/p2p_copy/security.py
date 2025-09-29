@@ -15,7 +15,7 @@ def import_optional_security_libs():
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
     except ModuleNotFoundError as E:
         raise ModuleNotFoundError(
-            E.msg + '\nTo use encryption optional security libs are needed (pip install ".[security]")')
+            E.msg + '\nTo use encryption optional security libs are needed (pip install p2p-copy[security])')
 
 
 def _get_argon2_hash(code: str, salt: bytes) -> bytes:

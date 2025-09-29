@@ -109,7 +109,7 @@ def receive(
         server: str = typer.Argument(..., help="Relay WS(S) URL, e.g. wss://relay.example:443 or ws://localhost:8765"),
         code: str = typer.Argument(..., help="Shared passphrase/code"),
         encrypt: bool = typer.Option(False, help="Enable end-to-end encryption"),
-        out: Optional[str] = typer.Option(".", "--out", "-o", help="Output directory"),
+        out: Optional[str] = typer.Option(".", "--out", help="Output directory"),
 ):
     """
     Receive files from a sender via the relay server.

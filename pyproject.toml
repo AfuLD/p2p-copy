@@ -4,15 +4,15 @@ build-backend = "hatchling.build"
 
 [project]
 name = "p2p-copy"
-version = "0.1.0"
-description = "P2P-style file transfer over WSS with chunk streaming."
+version = "0.1.1"
+description = "Python library and command-line tool for transferring files and directories over a WebSocket relay server"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
   { name = "AfuLD"}
 ]
 license = { text = "MIT" }
-keywords = ["p2p", "file-transfer", "websocket", "chunk-streaming"]
+keywords = ["p2p", "file-transfer", "websocket"]
 classifiers = [
   "Programming Language :: Python :: 3",
   "License :: OSI Approved :: MIT License",
@@ -54,9 +54,6 @@ include = [
   "src/p2p_copy",
   "src/p2p_copy_cli",
   "src/p2p_copy_server",
-  "docs",
-  "examples",
-  "tests",
   "README.md",
   "LICENSE",
   "pyproject.toml"

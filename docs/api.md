@@ -1,6 +1,13 @@
 # API Reference
 
-This section documents the public API of `p2p_copy`. For module structure, see [Module Layout](./layout.md). Generated from source code docstrings.
+This section documents the API of `p2p_copy`. Only the functions run_relay, send and receive are intended for users, others are mainly information for developers. For module structure, see [Module Layout](./layout.md). Generated from source code docstrings.
+
+
+
+&nbsp;
+
+::: p2p_copy_server
+
 
 
 &nbsp;
@@ -36,8 +43,5 @@ This section documents the public API of `p2p_copy`. For module structure, see [
 
 &nbsp;
 
-::: p2p_copy_server
-
-&nbsp;
 
 For api usage examples, see [APIExamples](./examples.md). For feature details, see [Features](./features.md).

@@ -24,7 +24,15 @@ async def send(server: str, code: str, files: List[str],
                compress: CompressMode = CompressMode.auto,
                resume: bool = False) -> int:
     """
-    Send files/directories to a receiver via the relay server.
+    Send one or more files or directories to a paired receiver via the relay server.
+
+    This command connects to the specified WebSocket relay server, authenticates using
+    the shared passphrase (hashed for pairing), and streams the provided files/directories
+    in chunks to the receiver. Supports directories by recursively including all files
+    in alphabetical order. Optional end-to-end encryption (AES-GCM) and compression
+    (Zstandard, auto-detected per file) can be enabled. If resume is enabled, it
+    coordinates with the receiver to skip complete files or append to partial ones
+    based on chained checksum verification.
 
     Parameters
     ----------
@@ -225,7 +233,14 @@ async def receive(server: str, code: str,
                   *, encrypt: bool = False,
                   out: Optional[str] = None) -> int:
     """
-    Receive files from a sender via the relay server.
+    Receive files from a paired sender via the relay server and write to the output directory.
+
+    This command connects to the relay server, pairs using the shared passphrase hash,
+    and receives a manifest of incoming files/directories. Files are written to the
+    output directory, preserving relative paths from the manifest. Supports optional
+    end-to-end decryption (matching sender's encryption) and decompression. If the
+    sender requests resume, this receiver reports existing file states (via checksums)
+    to enable skipping or appending.
 
     Parameters
     ----------
