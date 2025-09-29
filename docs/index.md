@@ -3,10 +3,14 @@
 [![PyPI version](https://badge.fury.io/py/p2p-copy.svg)](https://badge.fury.io/py/p2p-copy)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Docs](https://img.shields.io/badge/docs-online-brightgreen.svg)](https://afuld.github.io/p2p-copy)
 
 p2p-copy is a Python library and command-line tool for transferring files and directories over a WebSocket relay server. It supports chunked streaming, optional end-to-end encryption, compression, and resume functionality, making it suitable for environments with restrictive firewalls, such as high-performance computing (HPC) systems. The tool avoids dependencies on SSH or inbound ports, relying instead on outbound connections over ports like 443.
 
 The design prioritizes performance, low resource usage, and simplicity, with a stateless relay that forwards data without storage. For details on the protocol and internals, see [Features](./features.md).
+
+## Full Documentation
+For detailed guides, visit the [full documentation site](https://afuld.github.io/p2p-copy).
 
 ## Quickstart
 
