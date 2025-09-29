@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "p2p-copy"
-version = "0.1.0a0"
+version = "0.1.0"
 description = "P2P-style file transfer over WSS with chunk streaming."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -54,6 +54,9 @@ include = [
   "src/p2p_copy",
   "src/p2p_copy_cli",
   "src/p2p_copy_server",
+  "docs",
+  "examples",
+  "tests",
   "README.md",
   "LICENSE",
   "pyproject.toml"
