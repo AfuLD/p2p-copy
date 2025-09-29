@@ -735,7 +735,7 @@
 <li>Set up renewal via crontab:</li>
 </ul>
 <pre><code class="language-bash">sudo crontab -e
-# Add: 0 4 * * * certbot renew --deploy-hook &quot;systemctl reload run-relay-server.service&quot;
+# Add: 0 4 * * * /usr/bin/certbot renew --deploy-hook &quot;/bin/systemctl restart run-relay-server.service&quot;
 </code></pre>
 <h3 id="port-privileges">Port Privileges</h3>
 <ul>
