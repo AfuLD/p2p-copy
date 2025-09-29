@@ -36,7 +36,7 @@ sudo certbot certonly --standalone -d relay.example.com # --register-unsafely-wi
 
 ```bash
 sudo crontab -e
-# Add: 0 4 * * * certbot renew --deploy-hook "systemctl reload run-relay-server.service"
+# Add: 0 4 * * * /usr/bin/certbot renew --deploy-hook "/bin/systemctl restart run-relay-server.service"
 ```
 
 ### Port Privileges
